@@ -1,28 +1,25 @@
 import pandas as pd
+import spacy
 from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
 import string
 
-df = pd.read_table('TripAdvisorUKRestaurant-max_MF.txt')
 
-ratings = df.iloc[:,0]
-reviews = df.iloc[:,1]
+def sample_dataset(file='kindle_reviews.csv'):
+	df = pd.read_csv(file)
+	df = df.sample(frac = 1, random_state=0)
 
-ratings_distribution = ratings.value_counts()
+	column_names = df.columns
 
-print(ratings_distribution)
-print(len(reviews))
+	ratings = [1,2,3,4,5]
+	sampled_dataset = pd.DataFrame(columns=column_names)
 
-nlp = English()
-tokenizer = Tokenizer(nlp.vocab)
-	
-table = str.maketrans('', '', string.punctuation)
+	for rating in ratings:
+		books_rating = df.loc[df['overall'] == rating]
+		books_rating = books_rating.sample(n=20000, random_state=0)
+		sampled_dataset = sampled_dataset.append(books_rating)
 
-for review in reviews:
-	tokens = tokenizer(review)
-	for token in tokens:
-		print(token.orth_)
-	stripped = [token.orth_ for token in tokens if not token.is_punct | token.is_space]
-	for token in stripped:
-		print(token)
-	break
+	sampled_dataset = sampled_dataset.sample(frac = 1, random_state=0)
+	return sampled_dataset
+
+df = sample_dataset()
