@@ -8,9 +8,9 @@ import string
 def sample_dataset(file='kindle_reviews.csv'):
 	df = pd.read_csv(file)
 	df = df.sample(frac = 1, random_state=0)
+	df = df.rename(columns={'Unnamed: 0': 'Id'})
 
 	column_names = df.columns
-
 	ratings = [1,2,3,4,5]
 	sampled_dataset = pd.DataFrame(columns=column_names)
 
@@ -23,3 +23,4 @@ def sample_dataset(file='kindle_reviews.csv'):
 	return sampled_dataset
 
 df = sample_dataset()
+df.to_csv('kindle_reviews_sm.csv')
