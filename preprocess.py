@@ -23,4 +23,4 @@ def sample_dataset(file='kindle_reviews.csv'):
 	return sampled_dataset
 
 df = sample_dataset()
-df.to_csv('kindle_reviews_sm.csv')
+df.to_csv('kindle_reviews_sm.csv', index=False)
