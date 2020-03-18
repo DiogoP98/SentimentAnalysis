@@ -22,7 +22,7 @@ import numpy as np
 # In[2]:
 
 
-file_num = 2
+file_num = 3
 df = pd.read_csv(f"{file_num}.csv",keep_default_na=False)
 df = df[~df['reviewText'].str.contains("\.jpg|\.png|\.jpeg|\.tiff|\.gif|\.bmp|\.heif", regex=True, na=False)]
 old = df.copy()
@@ -158,7 +158,7 @@ df.to_csv(f'kindle_reviews_cleaned_{file_num}.csv', index=False)
 
 
 # for inx, c in enumerate(chunks):
-#     c.to_csv(f"data_split/{inx}.csv")
+#     c.to_csv(f"preprocess/{inx}.csv")
 
 
 # In[ ]:

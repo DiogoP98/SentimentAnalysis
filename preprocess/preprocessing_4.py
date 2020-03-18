@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[10]:
+# In[1]:
 
 
 import string
@@ -19,21 +19,21 @@ import numpy as np
 # 
 # - Read in the data and then shuffle
 
-# In[11]:
+# In[2]:
 
 
-file_num = 0
+file_num = 4
 df = pd.read_csv(f"{file_num}.csv",keep_default_na=False)
 df = df[~df['reviewText'].str.contains("\.jpg|\.png|\.jpeg|\.tiff|\.gif|\.bmp|\.heif", regex=True, na=False)]
 old = df.copy()
 text = df.reviewText
-num_entries = 1000 # len(df)
+num_entries = len(df)
 
 
 # Initial Data cleaning
 # 
 
-# In[12]:
+# In[8]:
 
 
 def tweet_clean(num_entries):
@@ -42,7 +42,7 @@ def tweet_clean(num_entries):
         df.reviewText[index] = clean_text
 
 
-# In[13]:
+# In[9]:
 
 
 
@@ -50,7 +50,7 @@ def tweet_clean(num_entries):
 tweet_clean(num_entries)
 
 
-# In[14]:
+# In[10]:
 
 
 # Helper function to print tokens in a sentence 
@@ -69,7 +69,7 @@ def print_tokens(doc):
 # 
 # python -m spacy download en_core_web_md
 
-# In[15]:
+# In[11]:
 
 
 nlp = spacy.load("en_core_web_md")
@@ -83,7 +83,7 @@ nlp = spacy.load("en_core_web_md")
 # 4. Removal of URLS and Emails
 # 5. The whole sentence is then spell checked and corrected
 
-# In[16]:
+# In[12]:
 
 
 def tokenizer(sentence):
@@ -96,7 +96,7 @@ def tokenizer(sentence):
     return filterTokens
 
 
-# In[17]:
+# In[13]:
 
 
 def clean_text(num_entries):
@@ -110,7 +110,7 @@ def clean_text(num_entries):
 
 # Clean all the text and put into a list
 
-# In[18]:
+# In[14]:
 
 
 clean_text(num_entries)
@@ -118,13 +118,13 @@ clean_text(num_entries)
 
 # Save the cleaned data
 
-# In[19]:
+# In[ ]:
 
 
 df.to_csv(f'kindle_reviews_cleaned_{file_num}.csv', index=False)
 
 
-# In[20]:
+# In[ ]:
 
 
 # Just to test 
@@ -139,7 +139,7 @@ df.to_csv(f'kindle_reviews_cleaned_{file_num}.csv', index=False)
 # df_2 = pd.read_csv("kindle_reviews_cleaned.csv")
 
 
-# In[21]:
+# In[4]:
 
 
 
@@ -154,14 +154,14 @@ df.to_csv(f'kindle_reviews_cleaned_{file_num}.csv', index=False)
 # chunks = split(df, 163765)
 
 
-# In[22]:
+# In[6]:
 
 
 # for inx, c in enumerate(chunks):
-#     c.to_csv(f"data_split/{inx}.csv")
+#     c.to_csv(f"preprocess/{inx}.csv")
 
 
-# In[22]:
+# In[ ]:
 
 
 
