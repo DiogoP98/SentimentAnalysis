@@ -7,10 +7,6 @@ COMP208 Coursework
 
 NLP sentiment analysis and text generation for University of Southampton COMP208 Coursework 
 
-```
-Give examples
-```
-
 
 ## Authors
 
