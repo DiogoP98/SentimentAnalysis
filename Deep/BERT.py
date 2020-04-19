@@ -97,8 +97,12 @@ def training(train_data, val_data, test_data):
         model.train()
 
         bar = IncrementalBar('Batch', max = len(train_data))
+        batch_n = 0
 
         for step, batch in enumerate(train_data):
+            batch_n += 1
+            if batch_n % 10:
+                torch.save(model.state_dict(), 'Bert_trained.pth')
             bar.next()
             model.zero_grad()
 
