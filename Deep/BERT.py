@@ -34,7 +34,7 @@ def tokenize(df):
         
         ids.append(encoded['input_ids'])
         masks.append(encoded['attention_mask'])
-        labels.append(label - 1)
+        labels.append(label)
 
     bar.finish()
 
@@ -54,9 +54,9 @@ def split_data(ids, masks, labels):
     test_size = size - train_size - val_size
     train, val, test = random_split(dataset, [train_size, val_size, test_size])
 
-    train_data = DataLoader(train, batch_size=128, shuffle=True)
-    val_data = DataLoader(val, batch_size=128, shuffle=True)
-    test_data = DataLoader(test, batch_size=128, shuffle=True)
+    train_data = DataLoader(train, batch_size=50, shuffle=True)
+    val_data = DataLoader(val, batch_size=50, shuffle=True)
+    test_data = DataLoader(test, batch_size=50, shuffle=True)
 
     return train_data, val_data, test_data
 
@@ -80,7 +80,7 @@ def training(train_data, val_data, test_data):
     print("**Started Training**")
     print("Training using " + device)
     model = transformers.BertForSequenceClassification.from_pretrained(
-        "bert-base-cased", num_labels = 5,output_attentions = False, output_hidden_states = False)
+        "bert-base-cased", num_labels = 6,output_attentions = False, output_hidden_states = False)
     
     #Adam optimizer with weight decay fix
     optimizer = transformers.AdamW(model.parameters(), lr = 5e-5, eps = 1e-8)
@@ -107,8 +107,7 @@ def training(train_data, val_data, test_data):
             model.zero_grad()
 
             loss, logits = model(batch[0].to(device), token_type_ids=None,
-                            attention_mask=batch[1].to(device), 
-                            labels=batch[2].to(device))
+                            attention_mask=batch[1].to(device), labels=batch[2].to(device))
             train_loss += loss.item()
             loss.backward()
 
