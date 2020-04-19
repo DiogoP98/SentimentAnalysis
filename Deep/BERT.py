@@ -101,7 +101,7 @@ def training(train_data, val_data, test_data):
 
         for step, batch in enumerate(train_data):
             batch_n += 1
-            if batch_n % 10:
+            if batch_n % 10 == 0:
                 torch.save(model.state_dict(), 'Bert_trained.pth')
             bar.next()
             model.zero_grad()
