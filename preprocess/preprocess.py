@@ -5,7 +5,7 @@ from spacy.lang.en import English
 import string
 
 
-def sample_dataset(file='kindle_reviews.csv'):
+def sample_dataset(file='../new_clean.csv'):
 	df = pd.read_csv(file)
 	df = df.sample(frac = 1, random_state=0)
 	df = df.rename(columns={'Unnamed: 0': 'Id'})
@@ -23,4 +23,4 @@ def sample_dataset(file='kindle_reviews.csv'):
 	return sampled_dataset
 
 df = sample_dataset()
-df.to_csv('kindle_reviews_sm.csv', index=False)
+df.to_csv('new_clean_sm.csv', index=False)
