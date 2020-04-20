@@ -11,7 +11,8 @@ from sklearn.metrics import matthews_corrcoef
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 def getData():
-    df = pd.read_csv('../kindle_reviews.csv', keep_default_na=False)
+    df = pd.read_csv('../new_clean_sm.csv', keep_default_na=False)
+    df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
     return df
@@ -79,8 +80,10 @@ def mcc(labels, predictions):
 def training(train_data, val_data, test_data):
     print("**Started Training**")
     print("Training using " + device)
+    
     model = transformers.BertForSequenceClassification.from_pretrained(
         "bert-base-cased", num_labels = 6,output_attentions = False, output_hidden_states = False)
+    model = model.to(device)
     
     #Adam optimizer with weight decay fix
     optimizer = transformers.AdamW(model.parameters(), lr = 5e-5, eps = 1e-8)
