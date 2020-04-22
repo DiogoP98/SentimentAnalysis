@@ -11,7 +11,7 @@ from sklearn.metrics import matthews_corrcoef
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 def getData():
-    df = pd.read_csv('../new_clean_sm.csv', keep_default_na=False)
+    df = pd.read_csv('../kindle_reviews.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
@@ -55,9 +55,9 @@ def split_data(ids, masks, labels):
     test_size = size - train_size - val_size
     train, val, test = random_split(dataset, [train_size, val_size, test_size])
 
-    train_data = DataLoader(train, batch_size=50, shuffle=True)
-    val_data = DataLoader(val, batch_size=50, shuffle=True)
-    test_data = DataLoader(test, batch_size=50, shuffle=True)
+    train_data = DataLoader(train, batch_size=10, shuffle=True)
+    val_data = DataLoader(val, batch_size=10, shuffle=True)
+    test_data = DataLoader(test, batch_size=10, shuffle=True)
 
     return train_data, val_data, test_data
 
@@ -110,7 +110,7 @@ def training(train_data, val_data, test_data):
             model.zero_grad()
 
             loss, logits = model(batch[0].to(device), token_type_ids=None,
-                            attention_mask=batch[1].to(device), labels=batch[2].to(device))
+                            attention_mask=batch[1].to(device), labels=batch[2].to(device=device, dtype=torch.int64))
             train_loss += loss.item()
             loss.backward()
 
@@ -138,7 +138,7 @@ def training(train_data, val_data, test_data):
             with torch.no_grad():
                 loss, logits = model(batch[0].to(device), token_type_ids=None,
                                 attention_mask=batch[1].to(device), 
-                                labels=batch[2].to(device))
+                                labels=batch[2].to(device=device, dtype=torch.int64))
             
             logits = logits.detach().cpu().numpy()
             val_loss += loss.item()
