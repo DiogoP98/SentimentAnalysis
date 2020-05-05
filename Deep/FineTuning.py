@@ -9,21 +9,33 @@ import datetime
 from sklearn.metrics import matthews_corrcoef
 from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
+from torch import nn
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 num_classes = 5
 
 def setup_BERT():
     tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=True)
-    model = BertForSequenceClassification.from_pretrained(
-        "bert-base-cased", num_labels = num_classes,output_attentions = False, output_hidden_states = False)
+    model = BertForSequenceClassification.from_pretrained("bert-base-cased", output_attentions = False, output_hidden_states = False)
+    model.classifier = nn.Linear(768, num_classes)
+
+    for param in model.parameters():
+        param.requires_grad = False
+    model.classifier.weight.requires_grad = True #unfreeze last layer weights
+    model.classifier.bias.requires_grad = True #unfreeze last layer biases
     model = model.to(device)
 
     return model, tokenizer
 
 def setup_XLNet():
     tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased', do_lower_case=True)
-    model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", num_labels=2)
+    model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", output_attentions = False, output_hidden_states = False)
+    model.logits_proj = nn.Linear(768, num_classes)
+
+    for param in model.parameters():
+        param.requires_grad = False
+    model.logits_proj.weight.requires_grad = True #unfreeze last layer weights
+    model.logits_proj.bias.requires_grad = True #unfreeze last layer biases
     model = model.to(device)
 
     return model, tokenizer
