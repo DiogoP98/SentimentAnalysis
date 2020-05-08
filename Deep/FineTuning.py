@@ -1,12 +1,12 @@
 import transformers
 import torch
+import utils
 import pandas as pd
 from torch.utils.data import TensorDataset, random_split, DataLoader
 import numpy as np 
 from progress.bar import IncrementalBar
 import time
 import datetime
-from sklearn.metrics import matthews_corrcoef
 from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 from torch import nn
@@ -16,8 +16,8 @@ num_classes = 5
 
 def setup_BERT():
     tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=True)
-    model = BertForSequenceClassification.from_pretrained("bert-base-cased", output_attentions = False, output_hidden_states = False)
-    model.classifier = nn.Linear(768, num_classes)
+    model = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
+    #model.classifier = nn.Linear(768, num_classes)
 
     for param in model.parameters():
         param.requires_grad = False
@@ -29,8 +29,8 @@ def setup_BERT():
 
 def setup_XLNet():
     tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased', do_lower_case=True)
-    model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", output_attentions = False, output_hidden_states = False)
-    model.logits_proj = nn.Linear(768, num_classes)
+    model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
+    #model.logits_proj = nn.Linear(768, num_classes)
 
     for param in model.parameters():
         param.requires_grad = False
@@ -41,7 +41,7 @@ def setup_XLNet():
     return model, tokenizer
 
 def getData():
-    df = pd.read_csv('../kindle_reviews.csv', keep_default_na=False)
+    df = pd.read_csv('../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
@@ -63,7 +63,7 @@ def tokenize(df, tokenizer):
         
         ids.append(encoded['input_ids'])
         masks.append(encoded['attention_mask'])
-        labels.append(label)
+        labels.append(label - 1)
 
     bar.finish()
 
@@ -98,28 +98,12 @@ def split_data(ids, masks, labels):
 
     return train_data, val_data, test_data
 
-def accuracy(labels, predictions):
-    predictions = np.argmax(predictions, axis=1).flatten()
-    labels = labels.flatten()
-    size = len(labels)
-
-    return np.sum(predictions == labels) / size
-
-def mcc(labels, predictions):
-    labels = np.concatenate(labels, axis=0)
-
-    predictions = np.concatenate(predictions, axis=0)
-    predictions = np.argmax(predictions, axis=1).flatten()    
-
-    return matthews_corrcoef(labels, predictions)
-
-
 def fine_tune(model, train_data, val_data, BERT=False, XLNET=False):
     print("**Started Fine Tune**")
     print("Using " + device)
     
     #Adam optimizer with weight decay fix
-    optimizer = transformers.AdamW(model.parameters(), lr = 5e-5, eps = 1e-8)
+    optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 5e-5, eps = 1e-8)
     epochs = 2
     scheduler = transformers.get_linear_schedule_with_warmup(optimizer, 
                                             num_warmup_steps = 0,
@@ -187,7 +171,7 @@ def run_validation(model, val_data):
             
             logits = logits.detach().cpu().numpy()
             val_loss += loss.item()
-            val_acc += accuracy(batch[2].numpy(), logits)
+            val_acc += utils.accuracy(batch[2].numpy(), logits)
         
     bar.finish()
     print("Average validation loss: " + str(val_loss/len(val_data)))
@@ -218,16 +202,16 @@ def testing(test_data):
         true_labels.append(batch[2].numpy())
         predicted_labels.append(logits)
 
-        test_acc += accuracy(batch[2].numpy(), logits)
+        test_acc += utils.accuracy(batch[2].numpy(), logits)
 
-    print("Test Matthews correlation coefficient: " + str(mcc(true_labels, predicted_labels)))
+    print("Test Matthews correlation coefficient: " + str(utils.mcc(true_labels, predicted_labels)))
     print("Average test accuracy: " + str(test_acc/len(test_data)))
     print("**Ended Testing**")
 
 if __name__ == "__main__":
     df = getData()
-    #model, tokenizer = setup_BERT()
-    model, tokenizer = setup_XLNet()
+    model, tokenizer = setup_BERT()
+    #model, tokenizer = setup_XLNet()
     ids, masks, labels = tokenize(df, tokenizer)
     train_data, val_data, test_data = split_data(ids, masks, labels)
     fine_tune(model, train_data, val_data)
