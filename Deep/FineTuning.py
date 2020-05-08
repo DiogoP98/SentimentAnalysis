@@ -10,6 +10,7 @@ import datetime
 from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 from torch import nn
+import sys
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 num_classes = 5
@@ -98,7 +99,7 @@ def split_data(ids, masks, labels):
 
     return train_data, val_data, test_data
 
-def fine_tune(model, train_data, val_data, BERT=False, XLNET=False):
+def fine_tune(model, train_data, val_data, selected_model):
     print("**Started Fine Tune**")
     print("Using " + device)
     
@@ -122,7 +123,7 @@ def fine_tune(model, train_data, val_data, BERT=False, XLNET=False):
         for step, batch in enumerate(train_data):
             batch_n += 1
             if batch_n % 10 == 0:
-                if BERT:
+                if selected_model == "BERT":
                     torch.save(model.state_dict(), 'Bert_finetuned.pth')
                 else:
                     torch.save(model.state_dict(), 'XLNET_finetuned.pth')
@@ -148,7 +149,7 @@ def fine_tune(model, train_data, val_data, BERT=False, XLNET=False):
         run_validation(model, val_data)
     
     print("**Ended Fine Tune**\n")
-    if BERT:
+    if selected_model == "BERT":
         torch.save(model.state_dict(), 'Bert_finetuned.pth')
     else:
         torch.save(model.state_dict(), 'XLNET_finetuned.pth')
@@ -178,8 +179,11 @@ def run_validation(model, val_data):
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
 
-def testing(test_data):
-    model = torch.load('Bert_trained.pth')
+def testing(test_data, selected_model):
+    if selected_model == "BERT":
+        model = torch.load('Bert_trained.pth')
+    else:
+        model = torch.load('XLNET_finetuned.pth')
     model.eval()
 
     print("\n**Started Testing**")
@@ -209,10 +213,21 @@ def testing(test_data):
     print("**Ended Testing**")
 
 if __name__ == "__main__":
+    arg = sys.argv
+    if len(arg) == 1:
+        raise Exception("No model specification provided")
+    selected_model = sys.argv[1]
+    selected_model = selected_model.upper()
+    print("Fine tuning " + selected_model)
+
     df = getData()
-    model, tokenizer = setup_BERT()
-    #model, tokenizer = setup_XLNet()
+
+    if selected_model == "BERT":
+        model, tokenizer = setup_BERT()
+    else:
+        model, tokenizer = setup_XLNet()
+
     ids, masks, labels = tokenize(df, tokenizer)
     train_data, val_data, test_data = split_data(ids, masks, labels)
-    fine_tune(model, train_data, val_data)
-    testing(test_data)
+    fine_tune(model, train_data, val_data, selected_model)
+    testing(test_data, selected_model)
