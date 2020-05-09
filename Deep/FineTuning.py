@@ -1,7 +1,6 @@
 import transformers
 import torch
 import utils
-import pandas as pd
 from torch.utils.data import TensorDataset, random_split, DataLoader
 import numpy as np 
 from progress.bar import IncrementalBar
@@ -20,10 +19,11 @@ def setup_BERT():
     model = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
     #model.classifier = nn.Linear(768, num_classes)
 
-    for param in model.parameters():
-        param.requires_grad = False
-    model.classifier.weight.requires_grad = True #unfreeze last layer weights
-    model.classifier.bias.requires_grad = True #unfreeze last layer biases
+    #for param in model.parameters():
+    #    param.requires_grad = False
+    
+    #model.classifier.weight.requires_grad = True #unfreeze last layer weights
+    #model.classifier.bias.requires_grad = True #unfreeze last layer biases
     model = model.to(device)
 
     return model, tokenizer
@@ -33,20 +33,13 @@ def setup_XLNet():
     model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
     #model.logits_proj = nn.Linear(768, num_classes)
 
-    for param in model.parameters():
-        param.requires_grad = False
-    model.logits_proj.weight.requires_grad = True #unfreeze last layer weights
-    model.logits_proj.bias.requires_grad = True #unfreeze last layer biases
+    #for param in model.parameters():
+    #    param.requires_grad = False
+    #model.logits_proj.weight.requires_grad = True #unfreeze last layer weights
+    #model.logits_proj.bias.requires_grad = True #unfreeze last layer biases
     model = model.to(device)
 
     return model, tokenizer
-
-def getData():
-    df = pd.read_csv('../new_clean_sm_100000.csv', keep_default_na=False)
-    df = df[df['reviewText'].notna()]
-    df = df.rename(columns={'Unnamed: 0': 'Id'})
-
-    return df
 
 def tokenize(df, tokenizer):
     ids = []
@@ -64,6 +57,7 @@ def tokenize(df, tokenizer):
         
         ids.append(encoded['input_ids'])
         masks.append(encoded['attention_mask'])
+        #labels: 1-5 --> 0-4
         labels.append(label - 1)
 
     bar.finish()
@@ -150,7 +144,7 @@ def fine_tune(model, train_data, val_data, selected_model):
     
     print("**Ended Fine Tune**\n")
     if selected_model == "BERT":
-        torch.save(model.state_dict(), 'Bert_finetuned.pth')
+        torch.save(model.state_dict(), 'BERT_finetuned.pth')
     else:
         torch.save(model.state_dict(), 'XLNET_finetuned.pth')
 
@@ -181,7 +175,7 @@ def run_validation(model, val_data):
 
 def testing(test_data, selected_model):
     if selected_model == "BERT":
-        model = torch.load('Bert_trained.pth')
+        model = torch.load('BERT_finetuned.pth')
     else:
         model = torch.load('XLNET_finetuned.pth')
     model.eval()
@@ -220,7 +214,7 @@ if __name__ == "__main__":
     selected_model = selected_model.upper()
     print("Fine tuning " + selected_model)
 
-    df = getData()
+    df = utils.get_data()
 
     if selected_model == "BERT":
         model, tokenizer = setup_BERT()
@@ -229,5 +223,5 @@ if __name__ == "__main__":
 
     ids, masks, labels = tokenize(df, tokenizer)
     train_data, val_data, test_data = split_data(ids, masks, labels)
-    fine_tune(model, train_data, val_data, selected_model)
+    #fine_tune(model, train_data, val_data, selected_model)
     testing(test_data, selected_model)
