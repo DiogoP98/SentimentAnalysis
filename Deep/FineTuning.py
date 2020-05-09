@@ -117,10 +117,8 @@ def fine_tune(model, train_data, val_data, selected_model):
         for step, batch in enumerate(train_data):
             batch_n += 1
             if batch_n % 10 == 0:
-                if selected_model == "BERT":
-                    torch.save(model.state_dict(), 'Bert_finetuned.pth')
-                else:
-                    torch.save(model.state_dict(), 'XLNET_finetuned.pth')
+                utils.checkpoint(model, optimizer, scheduler, selected_model)
+            
             bar.next()
             optimizer.zero_grad()
 
@@ -143,10 +141,7 @@ def fine_tune(model, train_data, val_data, selected_model):
         run_validation(model, val_data)
     
     print("**Ended Fine Tune**\n")
-    if selected_model == "BERT":
-        torch.save(model.state_dict(), 'BERT_finetuned.pth')
-    else:
-        torch.save(model.state_dict(), 'XLNET_finetuned.pth')
+    utils.checkpoint(model, optimizer, scheduler, selected_model)
 
 def run_validation(model, val_data):
     model.eval()
@@ -174,16 +169,18 @@ def run_validation(model, val_data):
 
 
 def testing(test_data, selected_model):
+    checkpoint = torch.load(selected_model+"_finetuned.pth", map_location=device)
+
     if selected_model == "BERT":
-        model = torch.load('BERT_finetuned.pth')
+        model = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
     else:
-        model = torch.load('XLNET_finetuned.pth')
+        model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
+    
+    model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
     print("\n**Started Testing**")
     print("-----------------")
-
-    model.eval()
 
     test_acc = 0
     true_labels = []
