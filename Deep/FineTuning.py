@@ -214,6 +214,7 @@ if __name__ == "__main__":
     selected_model = selected_model.upper()
     print("Fine tuning " + selected_model)
 
+    utils.setup_seeds()
     df = utils.get_data()
 
     if selected_model == "BERT":
@@ -223,5 +224,5 @@ if __name__ == "__main__":
 
     ids, masks, labels = tokenize(df, tokenizer)
     train_data, val_data, test_data = split_data(ids, masks, labels)
-    #fine_tune(model, train_data, val_data, selected_model)
+    fine_tune(model, train_data, val_data, selected_model)
     testing(test_data, selected_model)
