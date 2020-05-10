@@ -14,9 +14,9 @@ import os
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 num_classes = 5
-dataloader_path = '' # "/home/alex/AdvancedMachineLearningCW/Deep/"
-model_path = '' # "/home/alex/AdvancedMachineLearningCW/Deep/"
-use_start_dataloader = False
+dataloader_path = '' # "/home/alex/AdvancedMachineLearningCW/Deep/" for example
+model_path = '' # "/home/alex/AdvancedMachineLearningCW/Deep/" for example
+use_start_dataloader = True
 use_checkpoint = False
 dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
 
@@ -126,7 +126,8 @@ def fine_tune(model, train_data, val_data, selected_model):
                     state[k] = v.to(device)
 
         # reload the dataloader
-        train_data = torch.load(dir_path + "train_dataloader.pth", map_location=device)
+        train_data = torch.load(dir_path + "train_dataloader.pth")
+        val_data = torch.load(dir_path + "val_dataloader.pth")
         print()
 
     for epoch in range(start_epoch, epochs):
@@ -145,7 +146,9 @@ def fine_tune(model, train_data, val_data, selected_model):
                 utils.checkpoint(model, optimizer, scheduler, epoch,selected_model, model_path)
                 # save the dataloader
                 torch.save(train_data, dir_path + 'train_dataloader.pth')
-            
+                torch.save(val_data, dir_path + 'val_dataloader.pth')
+
+
             bar.next()
             optimizer.zero_grad()
 
@@ -270,7 +273,7 @@ if __name__ == "__main__":
         model, tokenizer = setup_XLNet()
 
 
-    if use_start_dataloader:
+    if use_start_dataloader or use_checkpoint:
         train_data = torch.load(dir_path + 'start_train_dataloader.pth')
         val_data = torch.load(dir_path + 'start_val_dataloader.pth')
         test_data = torch.load(dir_path + 'start_test_dataloader.pth')
