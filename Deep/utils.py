@@ -3,17 +3,19 @@ from sklearn.metrics import matthews_corrcoef
 import pandas as pd
 import torch
 
-def checkpoint(model, optimizer, scheduler, selected_model):
+def checkpoint(model, optimizer,scheduler, epoch ,selected_model, save_path):
     torch.save({
             'model_state_dict': model.state_dict(),
+            'epoch': epoch,
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
-    }, selected_model+"_finetuned.pth")
+    }, save_path + selected_model+"_finetuned.pth")
 
 def get_data():
-    df = pd.read_csv('../new_clean_sm_100000.csv', keep_default_na=False)
+    df = pd.read_csv('../new_clean_sm.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
+    df = df[:10000]
 
     return df
 
