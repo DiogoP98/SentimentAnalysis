@@ -10,6 +10,7 @@ from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 from torch import nn
 import sys
 import os
+from progress.bar import IncrementalBar
 from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -23,8 +24,7 @@ def tokenize(df, tokenizer):
 
     print("**Started Tokenizer**")
 
-    for review, label in zip(df['reviewText'], df['overall']):
-        bar.next()
+    for review, label in tqdm(zip(df['reviewText'], df['overall']), total=len(df['reviewText'])):        
         encoded = tokenizer.encode_plus(review, add_special_tokens= True,
                             max_length = 512, pad_to_max_length = True,
                             return_attention_mask= True, return_tensors='pt')
@@ -33,8 +33,6 @@ def tokenize(df, tokenizer):
         masks.append(encoded['attention_mask'])
         #labels: 1-5 --> 0-4
         labels.append(label - 1)
-
-    bar.finish()
 
     ids = torch.cat(ids)
     masks = torch.cat(masks)
@@ -67,12 +65,10 @@ def split_data(ids, masks, labels):
 
     return train_data, val_data, test_data
 
-def fine_tune(model, train_data, val_data, selected_model, use_checkpoint):
+def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path):
     print("**Started Fine Tune**")
     print("Using " + device)
     epoch = 0
-
-
 
     #Adam optimizer with weight decay fix
     optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 5e-5, eps = 1e-8)
@@ -82,8 +78,8 @@ def fine_tune(model, train_data, val_data, selected_model, use_checkpoint):
                                             num_training_steps = len(train_data) * epochs)
 
     start_epoch = 0
-    if use_checkpoint:
-        model, optimizer, scheduler, start_epoch, batch_num = load_checkpoint(model, optimizer, scheduler, selected_model)
+    if checkpoints:
+        model, optimizer, scheduler, start_epoch, batch_num = load_checkpoint(model, optimizer, scheduler, selected_model, model_path)
         model = model.to(device)
         # now individually transfer the optimizer parts...
         for state in optimizer.state.values():
@@ -92,29 +88,29 @@ def fine_tune(model, train_data, val_data, selected_model, use_checkpoint):
                     state[k] = v.to(device)
 
         # reload the dataloader
-        train_data = torch.load(dir_path + "train_dataloader.pth")
-        val_data = torch.load(dir_path + "val_dataloader.pth")
+        train_data = torch.load(dataloader_path + "train_dataloader.pth")
+        val_data = torch.load(dataloader_path + "val_dataloader.pth")
        
 
     for epoch in range(start_epoch, epochs):
-        if epoch > start_epoch and use_checkpoint == True:
-            use_checkpoint = False
+        if epoch > start_epoch and checkpoints == True:
+            checkpoints = False
         total = time.time()
         print("\nEpoch " + str(epoch + 1) + "/" + str(epochs))
-        train_loss = batch_n = 0
+        train_loss = 0
         model.train()
         
 
         for step, batch in enumerate(tqdm(train_data)):
-            if use_checkpoint:
+            if checkpoints:
                 if step < batch_num:
                     continue
-            batch_n += 1
-            if batch_n % 100 == 0:
-                utils.checkpoint(model, optimizer, scheduler, epoch, batch_n, selected_model, model_path)
+
+            if step % 100 == 0:
+                utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path)
                 # save the dataloader
-                torch.save(train_data, dir_path + 'train_dataloader.pth')
-                torch.save(val_data, dir_path + 'val_dataloader.pth')
+                torch.save(train_data, dataloader_path + 'train_dataloader.pth')
+                torch.save(val_data, dataloader_path + 'val_dataloader.pth')
             
             optimizer.zero_grad()
 
@@ -136,7 +132,7 @@ def fine_tune(model, train_data, val_data, selected_model, use_checkpoint):
         run_validation(model, val_data)
     
     print("**Ended Fine Tune**\n")
-    utils.checkpoint(model, optimizer, scheduler, epoch, batch_n ,selected_model, model_path)
+    utils.checkpoint(model, optimizer, scheduler, epoch, len(train_data) ,selected_model, model_path)
 
 def run_validation(model, val_data):
     model.eval()
@@ -159,7 +155,7 @@ def run_validation(model, val_data):
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
 
-def testing(test_data, selected_model):
+def testing(test_data, selected_model, model_path):
     checkpoint = torch.load(selected_model+"_finetuned.pth", map_location=device)
 
     if selected_model == "BERT":
@@ -194,10 +190,10 @@ def testing(test_data, selected_model):
     print("Average test accuracy: " + str(test_acc/len(test_data)))
     print("**Ended Testing**")
 
-def load_checkpoint(model, optimizer, scheduler, filename):
+def load_checkpoint(model, optimizer, scheduler, selected_model, model_path):
     # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
     start_epoch = 0
-    filename = dir_path + filename + "_finetuned.pth"
+    filename = model_path + selected_model + "_finetuned.pth"
     if os.path.isfile(filename):
         print("=> loading checkpoint '{}'".format(filename))
         checkpoint = torch.load(filename)
@@ -214,17 +210,8 @@ def load_checkpoint(model, optimizer, scheduler, filename):
     return model, optimizer, scheduler, start_epoch, batch_num
 
 if __name__ == "__main__":
-    dataloader_path = 'H:\\AdvancedMachineLearningCW\\Deep\\'
-    model_path = 'H:\\AdvancedMachineLearningCW\\Deep\\'
-    use_start_dataloader = True
-    use_checkpoint = True
-    dir_path = os.path.dirname(os.path.realpath(__file__)) + "\\"
+    selected_model, checkpoints, dataloader_path, model_path = utils.arg_parser()
 
-    arg = sys.argv
-    if len(arg) == 1:
-        raise Exception("No model specification provided")
-    selected_model = sys.argv[1]
-    selected_model = selected_model.upper()
     print("Fine tuning " + selected_model)
 
     utils.setup_seeds()
@@ -235,16 +222,16 @@ if __name__ == "__main__":
     else:
         model, tokenizer = utils.setup_XLNet()
 
-    if use_start_dataloader or use_checkpoint:
-        train_data = torch.load(dir_path + 'start_train_dataloader.pth')
-        val_data = torch.load(dir_path + 'start_val_dataloader.pth')
-        test_data = torch.load(dir_path + 'start_test_dataloader.pth')
+    if checkpoints:
+        train_data = torch.load(dataloader_path + 'start_train_dataloader.pth')
+        val_data = torch.load(dataloader_path + 'start_val_dataloader.pth')
+        test_data = torch.load(dataloader_path + 'start_test_dataloader.pth')
     else:
         ids, masks, labels = tokenize(df, tokenizer)
         train_data, val_data, test_data = split_data(ids, masks, labels)
-    if not use_start_dataloader:
-        torch.save(train_data, dir_path + 'start_train_dataloader.pth')
-        torch.save(val_data, dir_path + 'start_val_dataloader.pth')
-        torch.save(test_data, dir_path + 'start_test_dataloader.pth')
-    fine_tune(model, train_data, val_data, selected_model, use_checkpoint)
-    testing(test_data, selected_model)
+        torch.save(train_data, dataloader_path + 'start_train_dataloader.pth')
+        torch.save(val_data, dataloader_path + 'start_val_dataloader.pth')
+        torch.save(test_data, dataloader_path + 'start_test_dataloader.pth')
+    
+    fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
+    testing(test_data, selected_model, model_path)

@@ -4,6 +4,8 @@ import pandas as pd
 import torch
 from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
+import argparse
+import os
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 num_classes = 5
@@ -45,9 +47,10 @@ def checkpoint(model, optimizer,scheduler, epoch, batch_num ,selected_model, sav
     }, save_path + selected_model+"_finetuned.pth")
 
 def get_data():
-    df = pd.read_csv('H:\\AdvancedMachineLearningCW\\new_clean_sm_100000.csv', keep_default_na=False)
+    df = pd.read_csv('../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
+    df = df[:1000]
 
     return df
 
@@ -69,3 +72,14 @@ def setup_seeds():
     np.random.seed(0)
     torch.manual_seed(0)
     torch.backends.cudnn.deterministic = True
+
+def arg_parser():
+    dir_path = os.path.dirname(os.path.realpath(__file__)) + "\\"
+    parser = argparse.ArgumentParser(description='Check checkpoints')
+    parser.add_argument("--m", choices=["BERT", "XLNET"], required=True, type=str, help="Model")
+    parser.add_argument("--c", choices=[True, False], required=False, type=bool, default=False, help="Checkpoints")
+    parser.add_argument("--d", required=False, type=str, default=dir_path, help="DataLoader path")
+    parser.add_argument("--mp", required=False, type=str, default=dir_path, help="Model path")
+    args = parser.parse_args()
+
+    return args.m, args.c, args.d, args.mp
