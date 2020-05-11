@@ -6,9 +6,16 @@ from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassificat
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 import argparse
 import os
+import platform
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 num_classes = 5
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+if platform.system() == 'Linux' or platform.system() == 'Darwin':
+    dir_path += '/'
+else:
+    dir_path +=  '\\'
 
 def setup_BERT():
     tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=True)
@@ -47,10 +54,9 @@ def checkpoint(model, optimizer,scheduler, epoch, batch_num ,selected_model, sav
     }, save_path + selected_model+"_finetuned.pth")
 
 def get_data():
-    df = pd.read_csv('../new_clean_sm_100000.csv', keep_default_na=False)
+    df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
-    df = df[:1000]
 
     return df
 
@@ -74,7 +80,6 @@ def setup_seeds():
     torch.backends.cudnn.deterministic = True
 
 def arg_parser():
-    dir_path = os.path.dirname(os.path.realpath(__file__)) + "\\"
     parser = argparse.ArgumentParser(description='Check checkpoints')
     parser.add_argument("--m", choices=["BERT", "XLNET"], required=True, type=str, help="Model")
     parser.add_argument("--c", choices=[True, False], required=False, type=bool, default=False, help="Checkpoints")
