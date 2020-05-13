@@ -205,12 +205,12 @@ if __name__ == "__main__":
     print("Fine tuning " + selected_model)
 
     utils.setup_seeds()
-    df, num_classes = utils.get_data()
+    df = utils.get_data()
 
     global class_problem
 
     if three_class_problem:
-        df, num_classes = utils.three_class_problem(df)
+        df = utils.three_class_problem(df)
         class_problem = '3'
     else:
         class_problem = '5'

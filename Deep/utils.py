@@ -73,8 +73,6 @@ def get_data():
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
-    num_classes = 5
-
     return df
 
 def three_class_problem(df):
@@ -82,8 +80,6 @@ def three_class_problem(df):
     df = df[df['overall'] != 4]
     df.loc[df['overall'] == 3, 'overall'] = 2
     df.loc[df['overall'] == 5, 'overall'] = 3
-
-    num_classes = 3
 
     return df
 
