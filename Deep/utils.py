@@ -73,7 +73,7 @@ def get_data():
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
-    return df
+    return df,5
 
 def three_class_problem(df):
     df = df[df['overall'] != 2]
@@ -81,7 +81,7 @@ def three_class_problem(df):
     df.loc[df['overall'] == 3, 'overall'] = 2
     df.loc[df['overall'] == 5, 'overall'] = 3
 
-    return df
+    return df,3
 
 def accuracy(labels, predictions):
     predictions = np.argmax(predictions, axis=1).flatten()
