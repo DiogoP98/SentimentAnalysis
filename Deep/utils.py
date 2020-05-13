@@ -53,8 +53,8 @@ def setup_Roberta(num_classes):
     return model, tokenizer
 
 def setup_XLM(num_classes):
-    tokenizer = RobertaTokenizer.from_pretrained('xlm-mlm-enfr-1024', do_lower_case=True)
-    model = RobertaForSequenceClassification.from_pretrained('xlm-mlm-enfr-1024', num_labels=num_classes, output_attentions = False, output_hidden_states = False)
+    tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-enfr-1024', do_lower_case=True)
+    model = XLMForSequenceClassification.from_pretrained('xlm-mlm-enfr-1024', num_labels=num_classes, output_attentions = False, output_hidden_states = False)
     model = model.to(device)
 
     return model, tokenizer
