@@ -69,6 +69,25 @@ def checkpoint(model, optimizer,scheduler, epoch, batch_num ,selected_model, sav
             'batch_num': batch_num
     }, save_path + selected_model + "_finetuned_" + class_problem + ".pth")
 
+def load_checkpoint(model, optimizer, scheduler, selected_model, model_path, class_problem):
+    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
+    start_epoch = 0
+    filename = model_path + selected_model + "_finetuned_" + class_problem + ".pth"
+    if os.path.isfile(filename):
+        print("=> loading checkpoint '{}'".format(filename))
+        checkpoint = torch.load(filename)
+        start_epoch = checkpoint['epoch']
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        batch_num = checkpoint['batch_num']
+        print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(filename, checkpoint['epoch']))
+    else:
+        print("=> no checkpoint found at '{}'".format(filename))
+
+    return model, optimizer, scheduler, start_epoch, batch_num
+
 def get_data():
     df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]

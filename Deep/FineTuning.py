@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-
 def tokenize(df, tokenizer):
     ids = []
     masks = []
@@ -48,15 +47,7 @@ def split_data(ids, masks, labels):
     test_size = size - (train_size + val_size)
     train, val, test = random_split(dataset, [train_size, val_size, test_size])
 
-    #Review length             Maximum Batch Size
-    #    64                            64
-    #    128                           32
-    #    256                           16
-    #    320                           14
-    #    384                           12
-    #    512                           6
-
-    batch_size = 8
+    batch_size = 5
     train_data = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_data = DataLoader(val, batch_size=batch_size, shuffle=True)
     test_data = DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -77,17 +68,14 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
 
     start_epoch = 0
     if checkpoints:
-        model, optimizer, scheduler, start_epoch, batch_num = load_checkpoint(model, optimizer, scheduler, selected_model, model_path)
+        model, optimizer, scheduler, start_epoch, batch_num = utils.load_checkpoint(model, 
+                                                        optimizer, scheduler, selected_model, model_path, class_problem)
         model = model.to(device)
         # now individually transfer the optimizer parts...
         for state in optimizer.state.values():
             for k, v in state.items():
                 if isinstance(v, torch.Tensor):
                     state[k] = v.to(device)
-
-        # reload the dataloader
-        train_data = torch.load(dataloader_path + "start_train_dataloader.pth")
-        val_data = torch.load(dataloader_path + "start_val_dataloader.pth")
 
     for epoch in range(start_epoch, epochs):
         if epoch > start_epoch and checkpoints == True:
@@ -97,7 +85,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
         train_loss = 0
         model.train()
         
-
         for step, batch in enumerate(tqdm(train_data)):
             if checkpoints:
                 if step < batch_num:
@@ -106,9 +93,7 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
             if step % 1000 == 0:
                 utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path, class_problem)
 
-            
             optimizer.zero_grad()
-
             loss, logits = model(batch[0].to(device), token_type_ids=None,
                             attention_mask=batch[1].to(device), labels=batch[2].to(device=device, dtype=torch.int64))
             train_loss += loss.item()
@@ -131,7 +116,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
 
 def run_validation(model, val_data):
     model.eval()
-
     val_acc = 0
     val_loss = 0
 
@@ -190,25 +174,6 @@ def testing(test_data, selected_model, model_path, num_classes):
     print("Test Matthews correlation coefficient: " + str(utils.mcc(true_labels, predicted_labels)))
     print("Average test accuracy: " + str(test_acc/len(test_data)))
     print("**Ended Testing**")
-
-def load_checkpoint(model, optimizer, scheduler, selected_model, model_path):
-    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
-    start_epoch = 0
-    filename = model_path + selected_model + "_finetuned_" + class_problem + ".pth"
-    if os.path.isfile(filename):
-        print("=> loading checkpoint '{}'".format(filename))
-        checkpoint = torch.load(filename)
-        start_epoch = checkpoint['epoch']
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        batch_num = checkpoint['batch_num']
-        print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(filename, checkpoint['epoch']))
-    else:
-        print("=> no checkpoint found at '{}'".format(filename))
-
-    return model, optimizer, scheduler, start_epoch, batch_num
 
 if __name__ == "__main__":
     selected_model, checkpoints, dataloader_path, model_path, three_class_problem, test_mode = utils.arg_parser()
