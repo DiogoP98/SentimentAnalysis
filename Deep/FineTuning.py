@@ -145,7 +145,7 @@ def run_validation(model, val_data):
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
 
-def testing(test_data, selected_model, model_path, num_classes, checkpoints):
+def testing(test_data, selected_model, model_path, num_classes):
     checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
 
     if selected_model == "BERT":
