@@ -11,7 +11,7 @@ import os
 import platform
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-num_classes = 3
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 if platform.system() == 'Linux' or platform.system() == 'Darwin':

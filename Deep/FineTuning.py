@@ -13,8 +13,6 @@ from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-num_classes = 3
-
 
 def tokenize(df, tokenizer):
     ids = []
@@ -106,12 +104,8 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
             if checkpoints:
                 if step < batch_num:
                     continue
+
             if step % 1000 == 0:
-                utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path)
-                # save the dataloader
-                #torch.save(train_data, dataloader_path + 'train_dataloader.pth')
-                #torch.save(val_data, dataloader_path + 'val_dataloader.pth')
-            if step % 100 == 0:
                 utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path, class_problem)
 
             
