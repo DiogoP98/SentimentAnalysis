@@ -109,7 +109,8 @@ def arg_parser():
     parser.add_argument("--d", required=False, type=str, default=dir_path, help="DataLoader path")
     parser.add_argument("--mp", required=False, type=str, default=dir_path, help="Model path")
     parser.add_argument("--tcp", action='store_true', help="Three Class Problem")
+    parser.add_argument("--t", action='store_true', help="Test Mode")
     args = parser.parse_args()
 
 
-    return args.m.upper(), args.c, args.d, args.mp, args.tcp
+    return args.m.upper(), args.c, args.d, args.mp, args.tcp, args.t
