@@ -89,8 +89,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
         train_data = torch.load(dataloader_path + "start_train_dataloader.pth")
         val_data = torch.load(dataloader_path + "start_val_dataloader.pth")
 
-       
-
     for epoch in range(start_epoch, epochs):
         if epoch > start_epoch and checkpoints == True:
             checkpoints = False
@@ -151,17 +149,20 @@ def run_validation(model, val_data):
     print("Average validation loss: " + str(val_loss/len(val_data)))
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
-
-
-
 def testing(test_data, selected_model, model_path, num_classes):
-    checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
-
+    if os.path.exists(model_path + selected_model+ "_finetuned_" + class_problem + ".pth"):
+        checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
+    else:
+        raise ValueError('No file with the pretrained model selected')
 
     if selected_model == "BERT":
         model, _ = utils.setup_BERT(num_classes)
-    else:
+    elif selected_model == "XLNET":
         model, _ = utils.setup_XLNet(num_classes)
+    elif selected_model == "ROBERTA":
+        model, _ = utils.setup_Roberta(num_classes)
+    else:
+        model, _ = utils.setup_XLM(num_classes)
     
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -210,7 +211,7 @@ def load_checkpoint(model, optimizer, scheduler, selected_model, model_path):
     return model, optimizer, scheduler, start_epoch, batch_num
 
 if __name__ == "__main__":
-    selected_model, checkpoints, dataloader_path, model_path, three_class_problem = utils.arg_parser()
+    selected_model, checkpoints, dataloader_path, model_path, three_class_problem, test_mode = utils.arg_parser()
 
     print("Fine tuning " + selected_model)
 
@@ -241,9 +242,12 @@ if __name__ == "__main__":
     else:
         ids, masks, labels = tokenize(df, tokenizer)
         train_data, val_data, test_data = split_data(ids, masks, labels)
-        torch.save(train_data, dataloader_path + 'train_dataloader' + class_problem + '.pth')
-        torch.save(val_data, dataloader_path + 'val_dataloader' + class_problem + '.pth')
-        torch.save(test_data, dataloader_path + 'test_dataloader' + class_problem + '.pth')
+        if not test_mode:
+            torch.save(train_data, dataloader_path + 'train_dataloader' + class_problem + '.pth')
+            torch.save(val_data, dataloader_path + 'val_dataloader' + class_problem + '.pth')
+            torch.save(test_data, dataloader_path + 'test_dataloader' + class_problem + '.pth')
     
-    fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
+    if not test_mode:
+        fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
+    
     testing(test_data, selected_model, model_path, num_classes)
