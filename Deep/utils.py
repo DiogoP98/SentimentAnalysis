@@ -70,7 +70,7 @@ def checkpoint(model, optimizer,scheduler, epoch, batch_num ,selected_model, sav
     }, save_path + selected_model + "_finetuned_" + class_problem + ".pth")
 
 def get_data():
-    df = pd.read_csv(dir_path + '../3_class.csv', keep_default_na=False)
+    df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 

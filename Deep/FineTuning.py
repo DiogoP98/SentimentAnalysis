@@ -150,7 +150,7 @@ def run_validation(model, val_data):
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
 def testing(test_data, selected_model, model_path, num_classes):
-    if os.path.exists(model_path + selected_model+ "_finetuned_" + class_problem + ".pth"):
+    if os.path.exists(model_path + selected_model+ '_finetuned_' + class_problem + '.pth'):
         checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
     else:
         raise ValueError('No file with the pretrained model selected')
@@ -174,7 +174,7 @@ def testing(test_data, selected_model, model_path, num_classes):
     true_labels = []
     predicted_labels = []
 
-    for batch in test_data:
+    for batch in tqdm(test_data, total=len(test_data)):
         with torch.no_grad():
             output = model(batch[0].to(device), token_type_ids=None,
                             attention_mask=batch[1].to(device))
