@@ -139,21 +139,12 @@ def testing(test_data, selected_model, model_path, num_classes):
     else:
         raise ValueError('No file with the pretrained model selected')
 
-    if selected_model == "BERT":
-        model, _ = utils.setup_BERT(num_classes)
-    elif selected_model == "XLNET":
-        model, _ = utils.setup_XLNet(num_classes)
-    elif selected_model == "ROBERTA":
-        model, _ = utils.setup_Roberta(num_classes)
-    else:
-        model, _ = utils.setup_XLM(num_classes)
-    
+    model, _ = utils.setup_model(selected_model, num_classes)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
     print("\n**Started Testing**")
     print("-----------------")
-
     test_acc = 0
     true_labels = []
     predicted_labels = []
@@ -191,14 +182,7 @@ if __name__ == "__main__":
     else:
         class_problem = '5'
 
-    if selected_model == "BERT":
-        model, tokenizer = utils.setup_BERT(num_classes)
-    elif selected_model == "XLNET":
-        model, tokenizer = utils.setup_XLNet(num_classes)
-    elif selected_model == "ROBERTA":
-        model, tokenizer = utils.setup_Roberta(num_classes)
-    else:
-        model, tokenizer = utils.setup_XLM(num_classes)
+    model, tokenizer = utils.setup_model(selected_model, num_classes)
 
     if checkpoints:
         train_data = torch.load(dataloader_path + 'train_dataloader' + class_problem + '.pth')

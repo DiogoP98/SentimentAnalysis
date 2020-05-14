@@ -19,6 +19,18 @@ if platform.system() == 'Linux' or platform.system() == 'Darwin':
 else:
     dir_path +=  '\\'
 
+def setup_model(selected_model, num_classes):
+    if selected_model == "BERT":
+        model, tokenizer = setup_BERT(num_classes)
+    elif selected_model == "XLNET":
+        model, tokenizer = setup_XLNet(num_classes)
+    elif selected_model == "ROBERTA":
+        model, tokenizer = setup_Roberta(num_classes)
+    else:
+        model, tokenizer = setup_XLM(num_classes)
+
+    return model, tokenizer
+
 def setup_BERT(num_classes):
     tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=True)
     model = BertForSequenceClassification.from_pretrained('bert-base-cased', num_labels=num_classes, output_attentions = False, output_hidden_states = False)
