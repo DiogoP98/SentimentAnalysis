@@ -5,8 +5,6 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 import numpy as np
 import time
 import datetime
-from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
-from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 from torch import nn
 import sys
 import os
@@ -14,7 +12,10 @@ from progress.bar import IncrementalBar
 from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
+<<<<<<< HEAD
 num_classes = 3
+=======
+>>>>>>> 6d24b921ddb57b30af32d02ef75cf25630d2c3f2
 
 def tokenize(df, tokenizer):
     ids = []
@@ -86,10 +87,13 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
             for k, v in state.items():
                 if isinstance(v, torch.Tensor):
                     state[k] = v.to(device)
+<<<<<<< HEAD
 
         # reload the dataloader
         train_data = torch.load(dataloader_path + "start_train_dataloader.pth")
         val_data = torch.load(dataloader_path + "start_val_dataloader.pth")
+=======
+>>>>>>> 6d24b921ddb57b30af32d02ef75cf25630d2c3f2
        
 
     for epoch in range(start_epoch, epochs):
@@ -106,11 +110,16 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
                 if step < batch_num:
                     continue
 
+<<<<<<< HEAD
             if step % 1000 == 0:
                 utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path)
                 # save the dataloader
                 #torch.save(train_data, dataloader_path + 'train_dataloader.pth')
                 #torch.save(val_data, dataloader_path + 'val_dataloader.pth')
+=======
+            if step % 100 == 0:
+                utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path, class_problem)
+>>>>>>> 6d24b921ddb57b30af32d02ef75cf25630d2c3f2
             
             optimizer.zero_grad()
 
@@ -132,7 +141,7 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
         run_validation(model, val_data)
     
     print("**Ended Fine Tune**\n")
-    utils.checkpoint(model, optimizer, scheduler, epoch, len(train_data) ,selected_model, model_path)
+    utils.checkpoint(model, optimizer, scheduler, epoch, len(train_data) ,selected_model, model_path, class_problem)
 
 def run_validation(model, val_data):
     model.eval()
@@ -155,13 +164,18 @@ def run_validation(model, val_data):
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
 
+<<<<<<< HEAD
 def testing(test_data, selected_model, model_path):
     checkpoint = torch.load(model_path + selected_model+"_finetuned.pth", map_location=device)
+=======
+def testing(test_data, selected_model, model_path, num_classes):
+    checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
+>>>>>>> 6d24b921ddb57b30af32d02ef75cf25630d2c3f2
 
     if selected_model == "BERT":
-        model = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
+        model, _ = utils.setup_BERT(num_classes)
     else:
-        model = XLNetForSequenceClassification.from_pretrained("xlnet-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
+        model, _ = utils.setup_XLNet(num_classes)
     
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -193,7 +207,7 @@ def testing(test_data, selected_model, model_path):
 def load_checkpoint(model, optimizer, scheduler, selected_model, model_path):
     # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
     start_epoch = 0
-    filename = model_path + selected_model + "_finetuned.pth"
+    filename = model_path + selected_model + "_finetuned_" + class_problem + ".pth"
     if os.path.isfile(filename):
         print("=> loading checkpoint '{}'".format(filename))
         checkpoint = torch.load(filename)
@@ -210,28 +224,40 @@ def load_checkpoint(model, optimizer, scheduler, selected_model, model_path):
     return model, optimizer, scheduler, start_epoch, batch_num
 
 if __name__ == "__main__":
-    selected_model, checkpoints, dataloader_path, model_path = utils.arg_parser()
+    selected_model, checkpoints, dataloader_path, model_path, three_class_problem = utils.arg_parser()
 
     print("Fine tuning " + selected_model)
 
     utils.setup_seeds()
-    df = utils.get_data()
+    df, num_classes = utils.get_data()
+
+    global class_problem
+
+    if three_class_problem:
+        df, num_classes = utils.three_class_problem(df)
+        class_problem = '3'
+    else:
+        class_problem = '5'
 
     if selected_model == "BERT":
-        model, tokenizer = utils.setup_BERT()
+        model, tokenizer = utils.setup_BERT(num_classes)
+    elif selected_model == "XLNET":
+        model, tokenizer = utils.setup_XLNet(num_classes)
+    elif selected_model == "ROBERTA":
+        model, tokenizer = utils.setup_Roberta(num_classes)
     else:
-        model, tokenizer = utils.setup_XLNet()
+        model, tokenizer = utils.setup_XLM(num_classes)
 
     if checkpoints:
-        train_data = torch.load(dataloader_path + 'start_train_dataloader.pth')
-        val_data = torch.load(dataloader_path + 'start_val_dataloader.pth')
-        test_data = torch.load(dataloader_path + 'start_test_dataloader.pth')
+        train_data = torch.load(dataloader_path + 'train_dataloader' + class_problem + '.pth')
+        val_data = torch.load(dataloader_path + 'val_dataloader' + class_problem + '.pth')
+        test_data = torch.load(dataloader_path + 'test_dataloader' + class_problem + '.pth')
     else:
         ids, masks, labels = tokenize(df, tokenizer)
         train_data, val_data, test_data = split_data(ids, masks, labels)
-        torch.save(train_data, dataloader_path + 'start_train_dataloader.pth')
-        torch.save(val_data, dataloader_path + 'start_val_dataloader.pth')
-        torch.save(test_data, dataloader_path + 'start_test_dataloader.pth')
+        torch.save(train_data, dataloader_path + 'train_dataloader' + class_problem + '.pth')
+        torch.save(val_data, dataloader_path + 'val_dataloader' + class_problem + '.pth')
+        torch.save(test_data, dataloader_path + 'test_dataloader' + class_problem + '.pth')
     
     fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
-    testing(test_data, selected_model, model_path)
+    testing(test_data, selected_model, model_path, num_classes)
