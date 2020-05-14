@@ -19,6 +19,18 @@ if platform.system() == 'Linux' or platform.system() == 'Darwin':
 else:
     dir_path +=  '\\'
 
+def setup_model(selected_model, num_classes):
+    if selected_model == "BERT":
+        model, tokenizer = setup_BERT(num_classes)
+    elif selected_model == "XLNET":
+        model, tokenizer = setup_XLNet(num_classes)
+    elif selected_model == "ROBERTA":
+        model, tokenizer = setup_Roberta(num_classes)
+    else:
+        model, tokenizer = setup_XLM(num_classes)
+
+    return model, tokenizer
+
 def setup_BERT(num_classes):
     tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=True)
     model = BertForSequenceClassification.from_pretrained('bert-base-cased', num_labels=num_classes, output_attentions = False, output_hidden_states = False)
@@ -69,8 +81,27 @@ def checkpoint(model, optimizer,scheduler, epoch, batch_num ,selected_model, sav
             'batch_num': batch_num
     }, save_path + selected_model + "_finetuned_" + class_problem + ".pth")
 
+def load_checkpoint(model, optimizer, scheduler, selected_model, model_path, class_problem):
+    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
+    start_epoch = 0
+    filename = model_path + selected_model + "_finetuned_" + class_problem + ".pth"
+    if os.path.isfile(filename):
+        print("=> loading checkpoint '{}'".format(filename))
+        checkpoint = torch.load(filename)
+        start_epoch = checkpoint['epoch']
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        batch_num = checkpoint['batch_num']
+        print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(filename, checkpoint['epoch']))
+    else:
+        print("=> no checkpoint found at '{}'".format(filename))
+
+    return model, optimizer, scheduler, start_epoch, batch_num
+
 def get_data():
-    df = pd.read_csv(dir_path + '../3_class.csv', keep_default_na=False)
+    df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
@@ -110,7 +141,8 @@ def arg_parser():
     parser.add_argument("--d", required=False, type=str, default=dir_path, help="DataLoader path")
     parser.add_argument("--mp", required=False, type=str, default=dir_path, help="Model path")
     parser.add_argument("--tcp", action='store_true', help="Three Class Problem")
+    parser.add_argument("--t", action='store_true', help="Test Mode")
     args = parser.parse_args()
 
 
-    return args.m.upper(), args.c, args.d, args.mp, args.tcp
+    return args.m.upper(), args.c, args.d, args.mp, args.tcp, args.t

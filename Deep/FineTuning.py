@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-
 def tokenize(df, tokenizer):
     ids = []
     masks = []
@@ -48,15 +47,7 @@ def split_data(ids, masks, labels):
     test_size = size - (train_size + val_size)
     train, val, test = random_split(dataset, [train_size, val_size, test_size])
 
-    #Review length             Maximum Batch Size
-    #    64                            64
-    #    128                           32
-    #    256                           16
-    #    320                           14
-    #    384                           12
-    #    512                           6
-
-    batch_size = 8
+    batch_size = 5
     train_data = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_data = DataLoader(val, batch_size=batch_size, shuffle=True)
     test_data = DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -77,19 +68,14 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
 
     start_epoch = 0
     if checkpoints:
-        model, optimizer, scheduler, start_epoch, batch_num = load_checkpoint(model, optimizer, scheduler, selected_model, model_path)
+        model, optimizer, scheduler, start_epoch, batch_num = utils.load_checkpoint(model, 
+                                                        optimizer, scheduler, selected_model, model_path, class_problem)
         model = model.to(device)
         # now individually transfer the optimizer parts...
         for state in optimizer.state.values():
             for k, v in state.items():
                 if isinstance(v, torch.Tensor):
                     state[k] = v.to(device)
-
-        # reload the dataloader
-        train_data = torch.load(dataloader_path + "start_train_dataloader.pth")
-        val_data = torch.load(dataloader_path + "start_val_dataloader.pth")
-
-       
 
     for epoch in range(start_epoch, epochs):
         if epoch > start_epoch and checkpoints == True:
@@ -99,7 +85,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
         train_loss = 0
         model.train()
         
-
         for step, batch in enumerate(tqdm(train_data)):
             if checkpoints:
                 if step < batch_num:
@@ -108,9 +93,7 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
             if step % 1000 == 0:
                 utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path, class_problem)
 
-            
             optimizer.zero_grad()
-
             loss, logits = model(batch[0].to(device), token_type_ids=None,
                             attention_mask=batch[1].to(device), labels=batch[2].to(device=device, dtype=torch.int64))
             train_loss += loss.item()
@@ -133,7 +116,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
 
 def run_validation(model, val_data):
     model.eval()
-
     val_acc = 0
     val_loss = 0
 
@@ -151,29 +133,23 @@ def run_validation(model, val_data):
     print("Average validation loss: " + str(val_loss/len(val_data)))
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
-
-
-
 def testing(test_data, selected_model, model_path, num_classes):
-    checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
-
-
-    if selected_model == "BERT":
-        model, _ = utils.setup_BERT(num_classes)
+    if os.path.exists(model_path + selected_model+ '_finetuned_' + class_problem + '.pth'):
+        checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
     else:
-        model, _ = utils.setup_XLNet(num_classes)
-    
+        raise ValueError('No file with the pretrained model selected')
+
+    model, _ = utils.setup_model(selected_model, num_classes)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
     print("\n**Started Testing**")
     print("-----------------")
-
     test_acc = 0
     true_labels = []
     predicted_labels = []
 
-    for batch in test_data:
+    for batch in tqdm(test_data, total=len(test_data)):
         with torch.no_grad():
             output = model(batch[0].to(device), token_type_ids=None,
                             attention_mask=batch[1].to(device))
@@ -190,27 +166,8 @@ def testing(test_data, selected_model, model_path, num_classes):
     print("Average test accuracy: " + str(test_acc/len(test_data)))
     print("**Ended Testing**")
 
-def load_checkpoint(model, optimizer, scheduler, selected_model, model_path):
-    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
-    start_epoch = 0
-    filename = model_path + selected_model + "_finetuned_" + class_problem + ".pth"
-    if os.path.isfile(filename):
-        print("=> loading checkpoint '{}'".format(filename))
-        checkpoint = torch.load(filename)
-        start_epoch = checkpoint['epoch']
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        batch_num = checkpoint['batch_num']
-        print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(filename, checkpoint['epoch']))
-    else:
-        print("=> no checkpoint found at '{}'".format(filename))
-
-    return model, optimizer, scheduler, start_epoch, batch_num
-
 if __name__ == "__main__":
-    selected_model, checkpoints, dataloader_path, model_path, three_class_problem = utils.arg_parser()
+    selected_model, checkpoints, dataloader_path, model_path, three_class_problem, test_mode = utils.arg_parser()
 
     print("Fine tuning " + selected_model)
 
@@ -225,14 +182,7 @@ if __name__ == "__main__":
     else:
         class_problem = '5'
 
-    if selected_model == "BERT":
-        model, tokenizer = utils.setup_BERT(num_classes)
-    elif selected_model == "XLNET":
-        model, tokenizer = utils.setup_XLNet(num_classes)
-    elif selected_model == "ROBERTA":
-        model, tokenizer = utils.setup_Roberta(num_classes)
-    else:
-        model, tokenizer = utils.setup_XLM(num_classes)
+    model, tokenizer = utils.setup_model(selected_model, num_classes)
 
     if checkpoints:
         train_data = torch.load(dataloader_path + 'train_dataloader' + class_problem + '.pth')
@@ -241,9 +191,12 @@ if __name__ == "__main__":
     else:
         ids, masks, labels = tokenize(df, tokenizer)
         train_data, val_data, test_data = split_data(ids, masks, labels)
-        torch.save(train_data, dataloader_path + 'train_dataloader' + class_problem + '.pth')
-        torch.save(val_data, dataloader_path + 'val_dataloader' + class_problem + '.pth')
-        torch.save(test_data, dataloader_path + 'test_dataloader' + class_problem + '.pth')
+        if not test_mode:
+            torch.save(train_data, dataloader_path + 'train_dataloader' + class_problem + '.pth')
+            torch.save(val_data, dataloader_path + 'val_dataloader' + class_problem + '.pth')
+            torch.save(test_data, dataloader_path + 'test_dataloader' + class_problem + '.pth')
     
-    fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
+    if not test_mode:
+        fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
+    
     testing(test_data, selected_model, model_path, num_classes)
