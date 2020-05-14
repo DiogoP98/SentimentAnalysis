@@ -14,7 +14,7 @@ from progress.bar import IncrementalBar
 from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-num_classes = 5
+num_classes = 3
 
 def tokenize(df, tokenizer):
     ids = []
@@ -26,7 +26,7 @@ def tokenize(df, tokenizer):
 
     for review, label in tqdm(zip(df['reviewText'], df['overall']), total=len(df['reviewText'])):        
         encoded = tokenizer.encode_plus(review, add_special_tokens= True,
-                            max_length = 512, pad_to_max_length = True,
+                            max_length = 256, pad_to_max_length = True,
                             return_attention_mask= True, return_tensors='pt')
         
         ids.append(encoded['input_ids'])
@@ -58,7 +58,7 @@ def split_data(ids, masks, labels):
     #    384                           12
     #    512                           6
 
-    batch_size = 5 
+    batch_size = 8
     train_data = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_data = DataLoader(val, batch_size=batch_size, shuffle=True)
     test_data = DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -88,8 +88,8 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
                     state[k] = v.to(device)
 
         # reload the dataloader
-        train_data = torch.load(dataloader_path + "train_dataloader.pth")
-        val_data = torch.load(dataloader_path + "val_dataloader.pth")
+        train_data = torch.load(dataloader_path + "start_train_dataloader.pth")
+        val_data = torch.load(dataloader_path + "start_val_dataloader.pth")
        
 
     for epoch in range(start_epoch, epochs):
@@ -106,11 +106,11 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
                 if step < batch_num:
                     continue
 
-            if step % 100 == 0:
+            if step % 1000 == 0:
                 utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path)
                 # save the dataloader
-                torch.save(train_data, dataloader_path + 'train_dataloader.pth')
-                torch.save(val_data, dataloader_path + 'val_dataloader.pth')
+                #torch.save(train_data, dataloader_path + 'train_dataloader.pth')
+                #torch.save(val_data, dataloader_path + 'val_dataloader.pth')
             
             optimizer.zero_grad()
 
@@ -156,7 +156,7 @@ def run_validation(model, val_data):
 
 
 def testing(test_data, selected_model, model_path):
-    checkpoint = torch.load(selected_model+"_finetuned.pth", map_location=device)
+    checkpoint = torch.load(model_path + selected_model+"_finetuned.pth", map_location=device)
 
     if selected_model == "BERT":
         model = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=num_classes, output_attentions = False, output_hidden_states = False)
