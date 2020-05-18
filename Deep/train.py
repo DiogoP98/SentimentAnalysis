@@ -61,19 +61,25 @@ def cross_entropy_one_hot(input, target):
 def train(model, model_path, selected_model, train_loader, val_loader, test_loader):
     print("Started Training")
     optimizer = optim.Adam(model.parameters(), lr=0.01)
+    criterion = nn.CrossEntropyLoss()
 
     num_epochs = 5
+
+    # torchbearer_trial2 = Trial(model, optimizer, criterion, metrics=['acc', 'loss']).to(device)
+    # torchbearer_trial2.with_generators(train_generator=train_loader, val_generator=val_loader, test_generator=test_loader)
+    # torchbearer_trial2.run(epochs=num_epochs)
 
     for epoch in range(num_epochs):
         with tqdm(train_loader, total=len(train_loader), desc='train', position=0, leave=True) as t:
             for (inputs, lengths), labels in train_loader:
-                labels.requires_grad = True
+                labels = labels.squeeze().long()
+                #labels.requires_grad = True
                 optimizer.zero_grad()
 
                 logits = model(inputs, lengths)
-                loss = cross_entropy_one_hot(labels, logits)
+                loss = criterion(logits, labels)
                 loss.backward()
-
+                print(logits)
                 running_accuracy = utils.accuracy(labels, logits)
                 t.set_postfix(accuracy='{:05.3f}'.format(running_accuracy), loss='{:05.3f}'.format(loss))
                 t.update()
