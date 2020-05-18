@@ -9,7 +9,7 @@ from torchbearer import Trial
 from tqdm import tqdm
 
 import utils
-import LSTM
+import RNN
 
 spacy.load('en')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -62,6 +62,7 @@ def train(model, model_path, selected_model, train_loader, val_loader, test_load
     print("Started Training")
     optimizer = optim.Adam(model.parameters(), lr=0.01)
     criterion = nn.CrossEntropyLoss()
+    model.train()
 
     num_epochs = 5
 
@@ -73,13 +74,11 @@ def train(model, model_path, selected_model, train_loader, val_loader, test_load
         with tqdm(train_loader, total=len(train_loader), desc='train', position=0, leave=True) as t:
             for (inputs, lengths), labels in train_loader:
                 labels = labels.squeeze().long()
-                #labels.requires_grad = True
                 optimizer.zero_grad()
 
                 logits = model(inputs, lengths)
                 loss = criterion(logits, labels)
                 loss.backward()
-                print(logits)
                 running_accuracy = utils.accuracy(labels, logits)
                 t.set_postfix(accuracy='{:05.3f}'.format(running_accuracy), loss='{:05.3f}'.format(loss))
                 t.update()

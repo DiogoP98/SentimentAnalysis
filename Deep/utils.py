@@ -108,12 +108,11 @@ def three_class_problem(df):
     return df,3
 
 def accuracy(labels, predictions):
-    predictions = predictions.detach().numpy()
-    predictions = np.argmax(predictions, axis=1).flatten()
+    predictions = torch.argmax(predictions, dim=1).flatten()
     labels = labels.flatten()
     size = len(labels)
 
-    return np.sum(predictions == labels) / size
+    return (predictions == labels).sum().data.numpy()/size
 
 def mcc(labels, predictions):
     labels = np.concatenate(labels, axis=0)
