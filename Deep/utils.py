@@ -26,8 +26,6 @@ def setup_model(selected_model, num_classes):
         model, tokenizer = setup_XLNet(num_classes)
     elif selected_model == "ROBERTA":
         model, tokenizer = setup_Roberta(num_classes)
-    else:
-        model, tokenizer = setup_XLM(num_classes)
 
     return model, tokenizer
 
@@ -65,13 +63,6 @@ def setup_Roberta(num_classes):
 
     return model, tokenizer
 
-def setup_XLM(num_classes):
-    tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-enfr-1024', do_lower_case=True)
-    model = XLMForSequenceClassification.from_pretrained('xlm-mlm-enfr-1024', num_labels=num_classes, output_attentions = False, output_hidden_states = False)
-    model = model.to(device)
-
-    return model, tokenizer
-
 def checkpoint(model, optimizer,scheduler, epoch, batch_num ,selected_model, save_path, class_problem):
     torch.save({
             'model_state_dict': model.state_dict(),
@@ -105,6 +96,7 @@ def get_data():
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
+    df = df[:2000]
     return df,5
 
 def three_class_problem(df):
@@ -116,6 +108,7 @@ def three_class_problem(df):
     return df,3
 
 def accuracy(labels, predictions):
+    predictions = predictions.detach().numpy()
     predictions = np.argmax(predictions, axis=1).flatten()
     labels = labels.flatten()
     size = len(labels)
@@ -129,14 +122,14 @@ def mcc(labels, predictions):
 
     return matthews_corrcoef(labels, predictions)
 
-def setup_seeds():
-    np.random.seed(0)
-    torch.manual_seed(0)
+def setup_seeds(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
 def arg_parser():
     parser = argparse.ArgumentParser(description='Check checkpoints')
-    parser.add_argument("--m", choices=["BERT", "XLNET", "ROBERTA", "XLM"], required=True, type=str, help="Model")
+    parser.add_argument("--m", choices=["BERT", "XLNET", "ROBERTA", "LSTM"], required=True, type=str, help="Model")
     parser.add_argument("--c", action='store_true', help="Use previous checkpoints")
     parser.add_argument("--d", required=False, type=str, default=dir_path, help="DataLoader path")
     parser.add_argument("--mp", required=False, type=str, default=dir_path, help="Model path")

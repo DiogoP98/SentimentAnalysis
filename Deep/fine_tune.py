@@ -8,7 +8,6 @@ import datetime
 from torch import nn
 import sys
 import os
-from progress.bar import IncrementalBar
 from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -17,7 +16,6 @@ def tokenize(df, tokenizer):
     ids = []
     masks = []
     labels = []
-    bar = IncrementalBar('Review', max = len(df))
 
     print("**Started Tokenizer**")
 
@@ -166,12 +164,9 @@ def testing(test_data, selected_model, model_path, num_classes):
     print("Average test accuracy: " + str(test_acc/len(test_data)))
     print("**Ended Testing**")
 
-if __name__ == "__main__":
-    selected_model, checkpoints, dataloader_path, model_path, three_class_problem, test_mode = utils.arg_parser()
-
+def run_finetune(selected_model, checkpoints, dataloader_path, model_path, three_class_problem, test_mode):
     print("Fine tuning " + selected_model)
 
-    utils.setup_seeds()
     df, num_classes = utils.get_data()
 
     global class_problem
