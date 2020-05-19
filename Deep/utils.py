@@ -95,7 +95,6 @@ def get_data():
     df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
-    df = df[:2000]
 
     return df,5
 
