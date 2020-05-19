@@ -96,7 +96,6 @@ def get_data():
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
-    df = df[:2000]
     return df,5
 
 def three_class_problem(df):
@@ -130,11 +129,10 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='Check checkpoints')
     parser.add_argument("--m", choices=["BERT", "XLNET", "ROBERTA", "LSTM"], required=True, type=str, help="Model")
     parser.add_argument("--c", action='store_true', help="Use previous checkpoints")
-    parser.add_argument("--d", required=False, type=str, default=dir_path, help="DataLoader path")
-    parser.add_argument("--mp", required=False, type=str, default=dir_path, help="Model path")
+    parser.add_argument("--s", required=False, type=str, default=dir_path, help="Saving path")
     parser.add_argument("--tcp", action='store_true', help="Three Class Problem")
     parser.add_argument("--t", action='store_true', help="Test Mode")
     args = parser.parse_args()
 
 
-    return args.m.upper(), args.c, args.d, args.mp, args.tcp, args.t
+    return args.m.upper(), args.c, args.s, args.tcp, args.t

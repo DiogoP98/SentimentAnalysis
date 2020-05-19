@@ -12,14 +12,18 @@ from tqdm import tqdm
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-def tokenize(df, tokenizer):
+def tokenize(df, tokenizer, selected_model):
     ids = []
     masks = []
     labels = []
 
     print("**Started Tokenizer**")
 
-    for review, label in tqdm(zip(df['reviewText'], df['overall']), total=len(df['reviewText'])):        
+    for review, label in tqdm(zip(df['reviewText'], df['overall']), total=len(df['reviewText'])):
+        #solves Index Out of Range for Roberta
+        if selected_model == "ROBERTA" and review == "":
+            review = " "
+
         encoded = tokenizer.encode_plus(review, add_special_tokens= True,
                             max_length = 256, pad_to_max_length = True,
                             return_attention_mask= True, return_tensors='pt')
@@ -52,7 +56,7 @@ def split_data(ids, masks, labels):
 
     return train_data, val_data, test_data
 
-def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path):
+def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_path):
     print("**Started Fine Tune**")
     print("Using " + device)
     epoch = 0
@@ -67,7 +71,7 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
     start_epoch = 0
     if checkpoints:
         model, optimizer, scheduler, start_epoch, batch_num = utils.load_checkpoint(model, 
-                                                        optimizer, scheduler, selected_model, model_path, class_problem)
+                                                        optimizer, scheduler, selected_model, saving_path, class_problem)
         model = model.to(device)
         # now individually transfer the optimizer parts...
         for state in optimizer.state.values():
@@ -89,7 +93,7 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
                     continue
 
             if step % 1000 == 0:
-                utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, model_path, class_problem)
+                utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, saving_path, class_problem)
 
             optimizer.zero_grad()
             loss, logits = model(batch[0].to(device), token_type_ids=None,
@@ -110,7 +114,7 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, dataload
         run_validation(model, val_data)
     
     print("**Ended Fine Tune**\n")
-    utils.checkpoint(model, optimizer, scheduler, epoch, len(train_data) ,selected_model, model_path, class_problem)
+    utils.checkpoint(model, optimizer, scheduler, epoch, len(train_data) ,selected_model, saving_path, class_problem)
 
 def run_validation(model, val_data):
     model.eval()
@@ -131,9 +135,9 @@ def run_validation(model, val_data):
     print("Average validation loss: " + str(val_loss/len(val_data)))
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
-def testing(test_data, selected_model, model_path, num_classes):
-    if os.path.exists(model_path + selected_model+ '_finetuned_' + class_problem + '.pth'):
-        checkpoint = torch.load(model_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
+def testing(test_data, selected_model, saving_path, num_classes):
+    if os.path.exists(saving_path + selected_model+ '_finetuned_' + class_problem + '.pth'):
+        checkpoint = torch.load(saving_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
     else:
         raise ValueError('No file with the pretrained model selected')
 
@@ -164,7 +168,7 @@ def testing(test_data, selected_model, model_path, num_classes):
     print("Average test accuracy: " + str(test_acc/len(test_data)))
     print("**Ended Testing**")
 
-def run_finetune(selected_model, checkpoints, dataloader_path, model_path, three_class_problem, test_mode):
+def run_finetune(selected_model, checkpoints, saving_path, three_class_problem, test_mode):
     print("Fine tuning " + selected_model)
 
     df, num_classes = utils.get_data()
@@ -180,18 +184,18 @@ def run_finetune(selected_model, checkpoints, dataloader_path, model_path, three
     model, tokenizer = utils.setup_model(selected_model, num_classes)
 
     if checkpoints:
-        train_data = torch.load(dataloader_path + 'train_dataloader' + class_problem + '.pth')
-        val_data = torch.load(dataloader_path + 'val_dataloader' + class_problem + '.pth')
-        test_data = torch.load(dataloader_path + 'test_dataloader' + class_problem + '.pth')
+        train_data = torch.load(saving_path + 'train_dataloader' + class_problem + '.pth')
+        val_data = torch.load(saving_path + 'val_dataloader' + class_problem + '.pth')
+        test_data = torch.load(saving_path + 'test_dataloader' + class_problem + '.pth')
     else:
-        ids, masks, labels = tokenize(df, tokenizer)
+        ids, masks, labels = tokenize(df, tokenizer, selected_model)
         train_data, val_data, test_data = split_data(ids, masks, labels)
         if not test_mode:
-            torch.save(train_data, dataloader_path + 'train_dataloader' + class_problem + '.pth')
-            torch.save(val_data, dataloader_path + 'val_dataloader' + class_problem + '.pth')
-            torch.save(test_data, dataloader_path + 'test_dataloader' + class_problem + '.pth')
+            torch.save(train_data, saving_path + 'train_dataloader' + class_problem + '.pth')
+            torch.save(val_data, saving_path + 'val_dataloader' + class_problem + '.pth')
+            torch.save(test_data, saving_path + 'test_dataloader' + class_problem + '.pth')
     
     if not test_mode:
-        fine_tune(model, train_data, val_data, selected_model, checkpoints, dataloader_path, model_path)
+        fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_path)
     
-    testing(test_data, selected_model, model_path, num_classes)
+    testing(test_data, selected_model, saving_path, num_classes)
