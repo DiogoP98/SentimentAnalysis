@@ -87,25 +87,36 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_p
         train_loss = 0
         model.train()
         
-        for step, batch in enumerate(tqdm(train_data)):
-            if checkpoints:
-                if step < batch_num:
-                    continue
+        count = 0
+        running_loss = 0
+        running_acc = 0
+        with tqdm(train_data, total=len(train_data), desc='train', position=0, leave=True) as t:
+            for step, batch in enumerate(train_data): 
+                if checkpoints:
+                    if step < batch_num:
+                        continue
 
-            if step % 1000 == 0:
-                utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, saving_path, class_problem)
+                if step % 1000 == 0:
+                    utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, saving_path, class_problem)
 
-            optimizer.zero_grad()
-            loss, logits = model(batch[0].to(device), token_type_ids=None,
-                            attention_mask=batch[1].to(device), labels=batch[2].to(device=device, dtype=torch.int64))
-            train_loss += loss.item()
-            loss.backward()
+                optimizer.zero_grad()
+                loss, logits = model(batch[0].to(device), token_type_ids=None,
+                                attention_mask=batch[1].to(device), labels=batch[2].to(device=device, dtype=torch.int64))
+                train_loss += loss.item()
+                loss.backward()
 
-            #prevents "exploding gradients" problem
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                #prevents "exploding gradients" problem
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
-            optimizer.step()
-            scheduler.step()
+                running_loss += loss.item()
+                running_acc += utils.accuracy(batch[2].numpy(), logits)
+                count += 1
+
+                optimizer.step()
+                scheduler.step()
+
+                t.set_postfix(accuracy='{:05.3f}'.format(running_acc/count), loss='{:05.3f}'.format(running_loss/count))
+                t.update()
         
         total = time.time() - total
         print("\nElapsed Time: " + str(datetime.timedelta(seconds=int(round((total))))))
