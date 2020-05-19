@@ -95,6 +95,7 @@ def get_data():
     df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
+    df = df[:2000]
 
     return df,5
 
@@ -107,6 +108,12 @@ def three_class_problem(df):
     return df,3
 
 def accuracy(labels, predictions):
+    if type(predictions) is np.ndarray:
+        predictions = torch.from_numpy(predictions)
+    
+    if type(labels) is np.ndarray:
+        labels = torch.from_numpy(labels)
+    
     predictions = torch.argmax(predictions, dim=1).flatten()
     labels = labels.flatten()
     size = len(labels)
@@ -114,6 +121,8 @@ def accuracy(labels, predictions):
     return (predictions == labels).sum().data.numpy()/size
 
 def mcc(labels, predictions):
+    print(type(labels), type(predictions))
+    
     labels = np.concatenate(labels, axis=0)
     predictions = np.concatenate(predictions, axis=0)
     predictions = np.argmax(predictions, axis=1).flatten()    
