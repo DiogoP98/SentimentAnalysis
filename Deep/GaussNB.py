@@ -38,7 +38,7 @@ X = vectorizer.fit_transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
 
 clf = GaussianNB()
-clf.set_params(var_smoothing=6e-8)
+clf.set_params(var_smoothing=2.5e-8)
 batches = 10
 step_size = len(X_train.toarray())/batches
 for i in range(batches):
@@ -60,12 +60,12 @@ for i in range(batches):
     y_pred = clf.predict(X_batch)
     score.append(accuracy_score(y_batch, y_pred))
     f.append(f1_score(y_batch,y_pred,average='macro'))
-    cv_score.append(cross_val_score(clf, X_batch, y_batch, cv=3))
-print(score)
+    cv_score.append(cross_val_score(clf, X_batch, y_batch))
+#print(score)
 print(f'average accuracy score: {np.sum(score)/5}')
 print(f'f1macro average score: {np.mean(f)}')
 print(clf.get_params())
 # print('finnie')
-print(f'average cv score: {np.sum(cv_score)/5}')
+print(f'average cv score: {np.mean(cv_score)}')
 '''[0.8307692307692308, 0.7076923076923077, 0.7846153846153846, 0.7692307692307693, 0.7538461538461538]
 average: 0.7692307692307693'''
