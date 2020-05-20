@@ -9,6 +9,7 @@ from transformers import XLMModel, XLMTokenizer, XLMForSequenceClassification
 import argparse
 import os
 import platform
+import random
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -96,7 +97,6 @@ def get_data():
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
-    df = df[:2000]
     return df,5
 
 def three_class_problem(df):
@@ -108,13 +108,21 @@ def three_class_problem(df):
     return df,3
 
 def accuracy(labels, predictions):
+    if type(predictions) is np.ndarray:
+        predictions = torch.from_numpy(predictions)
+    
+    if type(labels) is np.ndarray:
+        labels = torch.from_numpy(labels)
+    
     predictions = torch.argmax(predictions, dim=1).flatten()
     labels = labels.flatten()
     size = len(labels)
 
-    return (predictions == labels).sum().data.numpy()/size
+    return (predictions == labels).cpu().sum().data.numpy()/size
 
 def mcc(labels, predictions):
+    print(type(labels), type(predictions))
+    
     labels = np.concatenate(labels, axis=0)
     predictions = np.concatenate(predictions, axis=0)
     predictions = np.argmax(predictions, axis=1).flatten()    
@@ -122,6 +130,7 @@ def mcc(labels, predictions):
     return matthews_corrcoef(labels, predictions)
 
 def setup_seeds(seed):
+    random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
@@ -130,11 +139,10 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='Check checkpoints')
     parser.add_argument("--m", choices=["BERT", "XLNET", "ROBERTA", "LSTM"], required=True, type=str, help="Model")
     parser.add_argument("--c", action='store_true', help="Use previous checkpoints")
-    parser.add_argument("--d", required=False, type=str, default=dir_path, help="DataLoader path")
-    parser.add_argument("--mp", required=False, type=str, default=dir_path, help="Model path")
+    parser.add_argument("--s", required=False, type=str, default=dir_path, help="Saving path")
     parser.add_argument("--tcp", action='store_true', help="Three Class Problem")
     parser.add_argument("--t", action='store_true', help="Test Mode")
     args = parser.parse_args()
 
 
-    return args.m.upper(), args.c, args.d, args.mp, args.tcp, args.t
+    return args.m.upper(), args.c, args.s, args.tcp, args.t
