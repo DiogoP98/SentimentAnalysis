@@ -62,13 +62,15 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_p
     epoch = 0
 
     #Adam optimizer with weight decay fix
-    if model == "XLNET" or model == "BERT":
+    if model == "XLNET":
         optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 5e-5, eps = 1e-8)
+    elif model == "BERT":
+        optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 2e-5, eps = 1e-8)
     else:
         optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 1e-5, eps = 1e-8)
     epochs = 2
     scheduler = transformers.get_linear_schedule_with_warmup(optimizer, 
-                                            num_warmup_steps = 5000,
+                                            num_warmup_steps = 50000,
                                             num_training_steps = len(train_data) * epochs)
 
     start_epoch = 0
