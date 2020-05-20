@@ -9,6 +9,7 @@ from transformers import XLMModel, XLMTokenizer, XLMForSequenceClassification
 import argparse
 import os
 import platform
+import random
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -117,7 +118,7 @@ def accuracy(labels, predictions):
     labels = labels.flatten()
     size = len(labels)
 
-    return (predictions == labels).sum().data.numpy()/size
+    return (predictions == labels).cpu().sum().data.numpy()/size
 
 def mcc(labels, predictions):
     print(type(labels), type(predictions))
@@ -129,6 +130,7 @@ def mcc(labels, predictions):
     return matthews_corrcoef(labels, predictions)
 
 def setup_seeds(seed):
+    random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True

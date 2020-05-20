@@ -62,10 +62,13 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_p
     epoch = 0
 
     #Adam optimizer with weight decay fix
-    optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 5e-5, eps = 1e-8)
+    if model == "XLNET" or model == "BERT":
+        optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 5e-5, eps = 1e-8)
+    else:
+        optimizer = transformers.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr = 1e-5, eps = 1e-8)
     epochs = 2
     scheduler = transformers.get_linear_schedule_with_warmup(optimizer, 
-                                            num_warmup_steps = 0,
+                                            num_warmup_steps = 5000,
                                             num_training_steps = len(train_data) * epochs)
 
     start_epoch = 0
@@ -84,7 +87,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_p
             checkpoints = False
         total = time.time()
         print("\nEpoch " + str(epoch + 1) + "/" + str(epochs))
-        train_loss = 0
         model.train()
         
         count = 0
@@ -99,17 +101,18 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_p
                 if step % 1000 == 0:
                     utils.checkpoint(model, optimizer, scheduler, epoch, step, selected_model, saving_path, class_problem)
 
+                batch[0], batch[1], batch[2] = batch[0].to(device), batch[1].to(device), batch[2].to(device=device, dtype=torch.int64)
+                
                 optimizer.zero_grad()
-                loss, logits = model(batch[0].to(device), token_type_ids=None,
-                                attention_mask=batch[1].to(device), labels=batch[2].to(device=device, dtype=torch.int64))
-                train_loss += loss.item()
+                loss, logits = model(batch[0], token_type_ids=None,
+                                attention_mask=batch[1], labels=batch[2])
                 loss.backward()
 
                 #prevents "exploding gradients" problem
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
+                running_acc += utils.accuracy(batch[2], logits)
                 running_loss += loss.item()
-                running_acc += utils.accuracy(batch[2].numpy(), logits)
                 count += 1
 
                 optimizer.step()
@@ -120,7 +123,6 @@ def fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_p
         
         total = time.time() - total
         print("\nElapsed Time: " + str(datetime.timedelta(seconds=int(round((total))))))
-        print("Average loss: " + str(train_loss/len(train_data)))
 
         run_validation(model, val_data)
     
