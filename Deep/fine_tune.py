@@ -137,15 +137,16 @@ def run_validation(model, val_data):
     val_loss = 0
 
     print("\n**Running Validation batches**")
-    for batch in val_data:
-        with torch.no_grad():
-            loss, logits = model(batch[0].to(device), token_type_ids=None,
-                                attention_mask=batch[1].to(device), 
-                                labels=batch[2].to(device=device, dtype=torch.int64))
-            
-            logits = logits.detach().cpu().numpy()
-            val_loss += loss.item()
-            val_acc += utils.accuracy(batch[2].numpy(), logits)
+    with torch.no_grad():
+        with tqdm(val_data, total=len(val_data), desc='train', position=0, leave=True) as t:
+            for batch in val_data:
+                loss, logits = model(batch[0].to(device), token_type_ids=None,
+                                    attention_mask=batch[1].to(device), 
+                                    labels=batch[2].to(device=device, dtype=torch.int64))
+                
+                logits = logits.detach().cpu().numpy()
+                val_loss += loss.item()
+                val_acc += utils.accuracy(batch[2], logits)
     
     print("Average validation loss: " + str(val_loss/len(val_data)))
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
