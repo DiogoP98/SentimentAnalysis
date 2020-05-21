@@ -10,6 +10,8 @@ class DataFrameDataset(data.Dataset):
         for i, row in tqdm(df.iterrows(), total=len(df)):
             label = row.overall - 1
             text = row.reviewText
+            if len(text) <= 0:
+                continue
             examples.append(data.Example.fromlist([text, label], fields))
 
         super().__init__(examples, fields, **kwargs)
