@@ -38,16 +38,7 @@ df = pd.read_csv(r"Datasets\\new_clean_sm.csv")
 
 print(df.shape)
 temp = df[['reviewText', 'overall']]
-ones = temp.loc[temp['overall'].isin([1])]
-twos = temp.loc[temp['overall'].isin([2])]
-threes = temp.loc[temp['overall'].isin([3])]
-fours = temp.loc[temp['overall'].isin([4])]
-fives = temp.loc[temp['overall'].isin([5])]
-ones = ones['reviewText'].values
-twos = twos['reviewText'].values
-threes = threes['reviewText'].values
-fours = fours['reviewText'].values
-fives = fives['reviewText'].values
+
 maxlen = 40
 step = 3
 try:
@@ -57,6 +48,16 @@ try:
     fours = np.load(r'Datasets\fours.npy', allow_pickle=True)
     fives = np.load(r'Datasets\fives.npy', allow_pickle=True)
 except:
+    ones = temp.loc[temp['overall'].isin([1])]
+    twos = temp.loc[temp['overall'].isin([2])]
+    threes = temp.loc[temp['overall'].isin([3])]
+    fours = temp.loc[temp['overall'].isin([4])]
+    fives = temp.loc[temp['overall'].isin([5])]
+    ones = ones['reviewText'].values
+    twos = twos['reviewText'].values
+    threes = threes['reviewText'].values
+    fours = fours['reviewText'].values
+    fives = fives['reviewText'].values
     save(r'Datasets\ones.npy', ones)
     save(r'Datasets\twos.npy', twos)
     save(r'Datasets\threes.npy', threes)
@@ -97,121 +98,126 @@ except:
     save(r'Datasets\threeswords.npy', threeswords)
     save(r'Datasets\fourswords.npy' , fourswords)
     save(r'Datasets\fiveswords.npy' , fiveswords)
+
 text = oneswords
 
+
+oneswords = [s+' 'for s in oneswords]
+oneswords[-1] = ' '
 """We now need to iterate over the characters in the text and count the times each transition happens:"""
 
-transition_counts = dict()
-for i in range(0,len(text)-1):
-    currc = text[i]
-    nextc = text[i+1]
-    if currc not in transition_counts:
-        transition_counts[currc] = dict()
-    if nextc not in transition_counts[currc]:
-        transition_counts[currc][nextc] = 0
-    transition_counts[currc][nextc] += 1
+#transition_counts = dict()
+#for i in range(0,len(text)-1):
+#    currc = text[i]
+#    nextc = text[i+1]
+#    if currc not in transition_counts:
+#        transition_counts[currc] = dict()
+#    if nextc not in transition_counts[currc]:
+#        transition_counts[currc][nextc] = 0
+#    transition_counts[currc][nextc] += 1
+#
+#"""The `transition_counts` dictionary maps the current character to the next character, and this is then mapped to a count. We can for example use this datastructure to get the number of times the letter 'a' was followed by a 'b':"""
+#
+#print("Number of transitions from 'a' to 'b': " + str(transition_counts['a']['b']))
+#
+#"""Finally, to complete the model we need to normalise the counts for each initial character into a probability distribution over the possible next character. We'll slightly modify the form we're storing these and maintain a tuple of array objects for each initial character: the first holding the set of possible characters, and the second holding the corresponding probabilities:"""
+#
+#transition_probabilities = dict()
+#for currentc, next_counts in transition_counts.items():
+#    values = []
+#    probabilities = []
+#    sumall = 0
+#    for nextc, count in next_counts.items():
+#        values.append(nextc)
+#        probabilities.append(count)
+#        sumall += count
+#    for i in range(0, len(probabilities)):
+#        probabilities[i] /= float(sumall)
+#    transition_probabilities[currentc] = (values, probabilities)
+#
+#"""At this point, we could print out the probability distribution for a given initial character state. For example, to print the distribution for 'a':"""
+#
+#for a,b in zip(transition_probabilities['a'][0], transition_probabilities['a'][1]):
+#    print(a,b)
+#
+#"""It looks like the most probable letter to follow an 'a' is 'n'.
+#
+#__What is the most likely letter to follow the letter 'j'? Write your answer in the block below:__
+#"""
+#
+#letter = 'the'
+#print(max(transition_probabilities[letter][1]))
+#print(transition_probabilities[letter][1].index(max(transition_probabilities[letter][1])))
+#transition_probabilities[letter][0][transition_probabilities[letter][1].index(max(transition_probabilities[letter][1]))]
+#
+#"""We mentioned earlier that the Markov model is generative. This means that we can draw samples from the distributions and iteratively move between states.
+#
+#Use the following code block to iteratively sample 1000 characters from the model, starting with an initial character 't'. You can use the `torch.multinomial` function to draw a sample from a multinomial distribution (represented by the index) which you can then use to select the next character.
+#"""
+#
+#current = 't'
+#for i in range(0, 1000):
+#    print(current, end='')
+#    # sample the next character based on `current` and store the result in `current`
+#    p = torch.multinomial(torch.tensor(transition_probabilities[current][1]),1).item()
+#    current = transition_probabilities[current][0][p]
+#    print(p)
+#
+#"""You should observe a result that is clearly not English, but it should be obvious that some of the common structures in the English language have been captured.
+#
+#__Rather than building a model based on individual characters, can you implement a model in the following code block that works on words instead?__
+#"""
+#
+##print(text)
+#import re
+#
+##ttext=re.findall(r'\w+', text)
+#ttext=text.split(' ')
+#print(ttext)
+#print(len(ttext))
+#transition_counts = dict()
+#for i in range(0,len(ttext)-1):
+#    currc = ttext[i]
+#    nextc = ttext[i+1]
+#    if currc not in transition_counts:
+#        transition_counts[currc] = dict()
+#    if nextc not in transition_counts[currc]:
+#        transition_counts[currc][nextc] = 0
+#    transition_counts[currc][nextc] += 1
+#
+#transition_probabilities = dict()
+#for currentc, next_counts in transition_counts.items():
+#    values = []
+#    probabilities = []
+#    sumall = 0
+#    for nextc, count in next_counts.items():
+#        values.append(nextc)
+#        probabilities.append(count)
+#        sumall += count
+#    for i in range(0, len(probabilities)):
+#        probabilities[i] /= float(sumall)
+#    transition_probabilities[currentc] = (values, probabilities)
+#
+#
+#
+#
+#current = 'the'
+#for i in range(0, 1000):
+#    print(current, end=' ')
+#    # sample the next character based on `current` and store the result in `current`
+#    p = torch.multinomial(torch.tensor(transition_probabilities[current][1]),1).item()
+#    current = transition_probabilities[current][0][p]
+#    #print(p)
+#
+#"""## RNN-based sequence modelling
+#
+#It is possible to build higher-order Markov models that capture longer-term dependencies in the text and have higher accuracy, however this does tend to become computationally infeasible very quickly. Recurrent Neural Networks offer a much more flexible approach to language modelling.
+#
+#We'll use the same data as above, and start by creating mappings of characters to numeric indices (and vice-versa):
+#"""
 
-"""The `transition_counts` dictionary maps the current character to the next character, and this is then mapped to a count. We can for example use this datastructure to get the number of times the letter 'a' was followed by a 'b':"""
+chars = oneswords
 
-print("Number of transitions from 'a' to 'b': " + str(transition_counts['a']['b']))
-
-"""Finally, to complete the model we need to normalise the counts for each initial character into a probability distribution over the possible next character. We'll slightly modify the form we're storing these and maintain a tuple of array objects for each initial character: the first holding the set of possible characters, and the second holding the corresponding probabilities:"""
-
-transition_probabilities = dict()
-for currentc, next_counts in transition_counts.items():
-    values = []
-    probabilities = []
-    sumall = 0
-    for nextc, count in next_counts.items():
-        values.append(nextc)
-        probabilities.append(count)
-        sumall += count
-    for i in range(0, len(probabilities)):
-        probabilities[i] /= float(sumall)
-    transition_probabilities[currentc] = (values, probabilities)
-
-"""At this point, we could print out the probability distribution for a given initial character state. For example, to print the distribution for 'a':"""
-
-for a,b in zip(transition_probabilities['a'][0], transition_probabilities['a'][1]):
-    print(a,b)
-
-"""It looks like the most probable letter to follow an 'a' is 'n'. 
-
-__What is the most likely letter to follow the letter 'j'? Write your answer in the block below:__
-"""
-
-letter = 'j'
-print(max(transition_probabilities[letter][1]))
-print(transition_probabilities[letter][1].index(max(transition_probabilities[letter][1])))
-transition_probabilities[letter][0][transition_probabilities[letter][1].index(max(transition_probabilities[letter][1]))]
-
-"""We mentioned earlier that the Markov model is generative. This means that we can draw samples from the distributions and iteratively move between states. 
-
-Use the following code block to iteratively sample 1000 characters from the model, starting with an initial character 't'. You can use the `torch.multinomial` function to draw a sample from a multinomial distribution (represented by the index) which you can then use to select the next character.
-"""
-
-current = 't'
-for i in range(0, 1000):
-    print(current, end='')
-    # sample the next character based on `current` and store the result in `current`
-    p = torch.multinomial(torch.tensor(transition_probabilities[current][1]),1).item()
-    current = transition_probabilities[current][0][p]
-    #print(p)
-
-"""You should observe a result that is clearly not English, but it should be obvious that some of the common structures in the English language have been captured.
-
-__Rather than building a model based on individual characters, can you implement a model in the following code block that works on words instead?__
-"""
-
-#print(text)
-import re
-
-#ttext=re.findall(r'\w+', text)
-ttext=text.split(' ')
-print(ttext)
-print(len(ttext))
-transition_counts = dict()
-for i in range(0,len(ttext)-1):
-    currc = ttext[i]
-    nextc = ttext[i+1]
-    if currc not in transition_counts:
-        transition_counts[currc] = dict()
-    if nextc not in transition_counts[currc]:
-        transition_counts[currc][nextc] = 0
-    transition_counts[currc][nextc] += 1
-
-transition_probabilities = dict()
-for currentc, next_counts in transition_counts.items():
-    values = []
-    probabilities = []
-    sumall = 0
-    for nextc, count in next_counts.items():
-        values.append(nextc)
-        probabilities.append(count)
-        sumall += count
-    for i in range(0, len(probabilities)):
-        probabilities[i] /= float(sumall)
-    transition_probabilities[currentc] = (values, probabilities)
-
-
-
-
-current = 'the'
-for i in range(0, 1000):
-    print(current, end=' ')
-    # sample the next character based on `current` and store the result in `current`
-    p = torch.multinomial(torch.tensor(transition_probabilities[current][1]),1).item()
-    current = transition_probabilities[current][0][p]
-    #print(p)
-
-"""## RNN-based sequence modelling
-
-It is possible to build higher-order Markov models that capture longer-term dependencies in the text and have higher accuracy, however this does tend to become computationally infeasible very quickly. Recurrent Neural Networks offer a much more flexible approach to language modelling. 
-
-We'll use the same data as above, and start by creating mappings of characters to numeric indices (and vice-versa):
-"""
-
-chars = sorted(list(set(text)))
 print('total chars:', len(chars))
 char_indices = dict((c, i) for i, c in enumerate(chars))
 indices_char = dict((i, c) for i, c in enumerate(chars))
@@ -232,6 +238,8 @@ step = 3
 
 def encode(inp):
     # encode the characters in a tensor
+    inp = inp.split(sep=' ')
+    inp = [s+' 'for s in inp]
     x = torch.zeros(maxlen, dtype=torch.long)
     for t, char in enumerate(inp):
         x[t] = char_indices[char]
@@ -308,6 +316,7 @@ def create_samples(state):
 
             generated = ''
             sentence = text[start_index:start_index+maxlen-1]
+
             generated += sentence
             print('----- Generating with seed: "' + sentence + '"')
             print()
@@ -366,8 +375,8 @@ trial.run(epochs=10)
 
 """Finally, run the following block to train the model and print out generated samples after each epoch. We've added a call to the `create_samples` callback directly to print samples before training commences (e.g. with random weights). Be aware this will take some time to run..."""
 
-create_samples.on_end_epoch(None)
-torchbearer_trial.run(epochs=10)
+#create_samples.on_end_epoch(None)
+#torchbearer_trial.run(epochs=10)
 
 """Looking at the results its possible to see the model works a bit like the Markov chain at the first epoch, but as the parameters become better tuned to the data it's clear that the LSTM has been able to model the structure of the language & is able to produce completely legible text.
 
