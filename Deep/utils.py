@@ -3,6 +3,7 @@ from sklearn.metrics import matthews_corrcoef
 import pandas as pd
 import torch
 from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 from transformers import RobertaModel, RobertaTokenizer, RobertaForSequenceClassification
 from transformers import XLMModel, XLMTokenizer, XLMForSequenceClassification
@@ -27,6 +28,8 @@ def setup_model(selected_model, num_classes):
         model, tokenizer = setup_XLNet(num_classes)
     elif selected_model == "ROBERTA":
         model, tokenizer = setup_Roberta(num_classes)
+    elif selected_model == "GPT2":
+        model, tokenizer = setup_GPT2()
 
     return model, tokenizer
 
@@ -44,6 +47,21 @@ def setup_BERT(num_classes):
 
     return model, tokenizer
 
+
+def setup_GPT2():
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    model = GPT2LMHeadModel.from_pretrained('gpt2')
+
+    # model.classifier = nn.Linear(768, num_classes)
+
+    # for param in model.parameters():
+    #    param.requires_grad = False
+
+    # model.classifier.weight.requires_grad = True #unfreeze last layer weights
+    # model.classifier.bias.requires_grad = True #unfreeze last layer biases
+    model = model.to(device)
+
+    return model, tokenizer
 def setup_XLNet(num_classes):
     tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased', do_lower_case=True)
     model = XLNetForSequenceClassification.from_pretrained('xlnet-base-cased', num_labels=num_classes, output_attentions = False, output_hidden_states = False)
@@ -93,7 +111,7 @@ def load_checkpoint(model, optimizer, scheduler, selected_model, model_path, cla
     return model, optimizer, scheduler, start_epoch, batch_num
 
 def get_data():
-    df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
+    df = pd.read_csv(dir_path + r'../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
