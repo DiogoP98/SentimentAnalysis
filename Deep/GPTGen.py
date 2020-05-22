@@ -66,8 +66,7 @@ for isbn in isbns:
     i+=1
 
 
-isbntitle = {
-}
+
 isbn10 = []
 isbn13 = []
 
@@ -78,9 +77,9 @@ isbn13 = []
 # Load pre-trained model tokenizer (vocabulary)
 
 
-pre = 'my review of .'
+pre = 'my review of the book'
 # Encode a text inputs
-text = "Who was Jim Henson ? Jim Henson was a"
+text = f'{pre}{isbntitle[0]}, a waste of money'
 indexed_tokens = tokenizer.encode(text)
 
 # Convert indexed tokens in a PyTorch tensor
