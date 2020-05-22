@@ -3,6 +3,9 @@ import fine_tune
 import utils
 import RNN_train
 
+import warnings
+warnings.filterwarnings("ignore")
+
 if __name__ == "__main__":
     selected_model, checkpoints, saving_path, three_class_problem, test_mode = utils.arg_parser()
     utils.setup_seeds(0)

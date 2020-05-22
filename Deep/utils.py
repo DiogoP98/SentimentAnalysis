@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.metrics import matthews_corrcoef
 import pandas as pd
 import torch
 from transformers import XLNetModel, XLNetTokenizer, XLNetForSequenceClassification
@@ -11,6 +10,7 @@ import argparse
 import os
 import platform
 import random
+from sklearn import metrics
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -111,7 +111,7 @@ def load_checkpoint(model, optimizer, scheduler, selected_model, model_path, cla
     return model, optimizer, scheduler, start_epoch, batch_num
 
 def get_data():
-    df = pd.read_csv(dir_path + r'../new_clean_sm_100000.csv', keep_default_na=False)
+    df = pd.read_csv(dir_path + '../new_clean_sm_100000.csv', keep_default_na=False)
     df = df[df['reviewText'].notna()]
     df = df.rename(columns={'Unnamed: 0': 'Id'})
 
@@ -138,14 +138,15 @@ def accuracy(labels, predictions):
 
     return (predictions == labels).cpu().sum().data.numpy()/size
 
-def mcc(labels, predictions):
-    print(type(labels), type(predictions))
-    
-    labels = np.concatenate(labels, axis=0)
-    predictions = np.concatenate(predictions, axis=0)
-    predictions = np.argmax(predictions, axis=1).flatten()    
+def concatenate_list(labels, predictions, labels_list, predictions_list):
+    predictions_list.extend(np.argmax(predictions.cpu().data.numpy(), axis=1).flatten())
+    labels_list.extend(labels.cpu().numpy().flatten())
 
-    return matthews_corrcoef(labels, predictions)
+    return labels_list, predictions_list
+
+def sklearn_metrics(labels_list, predictions_list, targets):
+    print(metrics.classification_report(labels_list, predictions_list, target_names=targets))
+    print(f"Test Matthews correlation coefficient: {metrics.matthews_corrcoef(labels_list, predictions_list)}")
 
 def setup_seeds(seed):
     random.seed(seed)
