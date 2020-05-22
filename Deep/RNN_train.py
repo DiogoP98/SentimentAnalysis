@@ -111,16 +111,23 @@ def validation(model, val_loader):
                 t.update()
 
 def test(model, saving_path, selected_model, class_problem, test_loader):
-    if os.path.exists(saving_path + selected_model + str(class_problem) + '.pth'):
-        checkpoint = torch.load(saving_path + selected_model + str(class_problem) + ".pth", map_location=device)
+    file_path = saving_path + selected_model + str(class_problem) + '.pth'
+    print(file_path)
+
+    if os.path.exists(file_path):
+        checkpoint = torch.load(file_path, map_location=device)
     else:
         raise ValueError('No file with the pretrained model selected')
     
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
+    model = model.to(device)
     
     running_accuracy = 0
     count = 0
+
+    true_labels = []
+    predicted_labels = []
 
     with torch.no_grad():
         for (inputs, lengths), labels in tqdm(test_loader, total=len(test_loader)):
@@ -130,8 +137,10 @@ def test(model, saving_path, selected_model, class_problem, test_loader):
             logits = model(inputs, lengths)
             running_accuracy += utils.accuracy(labels, logits)
             count += 1
+
+            true_labels, predicted_labels = utils.concatenate_list(labels, logits, true_labels, predicted_labels)
     
-    print(f"Test accuracy: {running_accuracy/count}")
+    utils.sklearn_metrics(true_labels, predicted_labels, targets)
 
     
  

@@ -138,7 +138,7 @@ def run_validation(model, val_data):
 
     print("\n**Running Validation batches**")
     with torch.no_grad():
-        with tqdm(val_data, total=len(val_data), desc='train', position=0, leave=True) as t:
+        with tqdm(val_data, total=len(val_data), desc='validation', position=0, leave=True) as t:
             for batch in val_data:
                 loss, logits = model(batch[0].to(device), token_type_ids=None,
                                     attention_mask=batch[1].to(device), 
@@ -152,40 +152,45 @@ def run_validation(model, val_data):
     print("Average validation accuracy: " + str(val_acc/len(val_data)))
 
 def testing(test_data, selected_model, saving_path, num_classes):
-    if os.path.exists(saving_path + selected_model+ '_finetuned_' + class_problem + '.pth'):
-        checkpoint = torch.load(saving_path + selected_model+ "_finetuned_" + class_problem + ".pth", map_location=device)
+    file_path = saving_path + selected_model+ '_finetuned_' + class_problem + '.pth'
+    print(file_path)
+    if os.path.exists(file_path):
+        checkpoint = torch.load(file_path, map_location=device)
     else:
         raise ValueError('No file with the pretrained model selected')
 
     model, _ = utils.setup_model(selected_model, num_classes)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
+    model = model.to(device)
 
     print("\n**Started Testing**")
     print("-----------------")
     test_acc = 0
     true_labels = []
     predicted_labels = []
-
+    
     for batch in tqdm(test_data, total=len(test_data)):
         with torch.no_grad():
-            output = model(batch[0].to(device), token_type_ids=None,
-                            attention_mask=batch[1].to(device))
+            batch[0], batch[1], batch[2] = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+            output = model(batch[0], token_type_ids=None,
+                            attention_mask=batch[1])
         
         logits = output[0]
-        logits = logits.detach().cpu().numpy()
 
-        true_labels.append(batch[2].numpy())
-        predicted_labels.append(logits)
-
-        test_acc += utils.accuracy(batch[2].numpy(), logits)
-
-    print("Test Matthews correlation coefficient: " + str(utils.mcc(true_labels, predicted_labels)))
-    print("Average test accuracy: " + str(test_acc/len(test_data)))
+        true_labels, predicted_labels = utils.concatenate_list(batch[2], logits, true_labels, predicted_labels)
+        test_acc += utils.accuracy(batch[2], logits)
+    
+    if num_classes == 3:
+        targets = ['Negative','Neutral','Positive']
+    else:
+        targets = ['1','2','3','4','5']
+    
+    utils.sklearn_metrics(true_labels, predicted_labels, targets)
     print("**Ended Testing**")
 
 def run_finetune(selected_model, checkpoints, saving_path, three_class_problem, test_mode):
-    print("Fine tuning " + selected_model)
+    print("Using " + selected_model)
 
     df, num_classes = utils.get_data()
 
@@ -198,18 +203,8 @@ def run_finetune(selected_model, checkpoints, saving_path, three_class_problem, 
         class_problem = '5'
 
     model, tokenizer = utils.setup_model(selected_model, num_classes)
-
-    if checkpoints:
-        train_data = torch.load(saving_path + 'train_dataloader' + class_problem + '.pth')
-        val_data = torch.load(saving_path + 'val_dataloader' + class_problem + '.pth')
-        test_data = torch.load(saving_path + 'test_dataloader' + class_problem + '.pth')
-    else:
-        ids, masks, labels = tokenize(df, tokenizer, selected_model)
-        train_data, val_data, test_data = split_data(ids, masks, labels)
-        if not test_mode:
-            torch.save(train_data, saving_path + 'train_dataloader' + class_problem + '.pth')
-            torch.save(val_data, saving_path + 'val_dataloader' + class_problem + '.pth')
-            torch.save(test_data, saving_path + 'test_dataloader' + class_problem + '.pth')
+    ids, masks, labels = tokenize(df, tokenizer, selected_model)
+    train_data, val_data, test_data = split_data(ids, masks, labels)
     
     if not test_mode:
         fine_tune(model, train_data, val_data, selected_model, checkpoints, saving_path)
