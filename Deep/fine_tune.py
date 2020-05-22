@@ -187,7 +187,6 @@ def testing(test_data, selected_model, saving_path, num_classes):
         targets = ['1','2','3','4','5']
     
     utils.sklearn_metrics(true_labels, predicted_labels, targets)
-    print(f"Test accuracy: {test_acc/len(test_data)}")
     print("**Ended Testing**")
 
 def run_finetune(selected_model, checkpoints, saving_path, three_class_problem, test_mode):

@@ -113,7 +113,7 @@ def validation(model, val_loader):
 def test(model, saving_path, selected_model, class_problem, test_loader):
     file_path = saving_path + selected_model + str(class_problem) + '.pth'
     print(file_path)
-    
+
     if os.path.exists(file_path):
         checkpoint = torch.load(file_path, map_location=device)
     else:
@@ -140,7 +140,7 @@ def test(model, saving_path, selected_model, class_problem, test_loader):
 
             true_labels, predicted_labels = utils.concatenate_list(labels, logits, true_labels, predicted_labels)
     
-    print(f"Test accuracy: {running_accuracy/count}")
+    utils.sklearn_metrics(true_labels, predicted_labels, targets)
 
     
  
