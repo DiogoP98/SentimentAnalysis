@@ -15,6 +15,7 @@ from goodreads import client
 import threading
 gc = client.GoodreadsClient('NvBjhVw5nHK7h1dVieSkA','mFbtG6YNnRjY2MW5mko4SBAqOoCg792R7hC3mFn4Y')
 gc2 = client.GoodreadsClient('fMR7HGS1g3D0WiNKed2A','oE4J6Kx7fbfnkU86Ldq24pleIOMiwyStCVt0lBIxI')
+clients = [gc,gc2]
 from tqdm import tqdm
 logging.basicConfig(level=logging.INFO)
 from AML.Deep.fine_tune import tokenize, split_data
@@ -23,7 +24,7 @@ model, tokenizer = utils.setup_model('GPT2',1)
 reviews = pd.read_csv("Datasets\\new_clean_sm.csv")
 print(reviews.shape)
 reviews.head()
-l = threading.Lock()
+isbntitle = pickle.load(open( "isbn_title.pkl", "rb" ) )
 ##
 threads = 2
 reviews['summary'] = reviews['summary'].fillna('') #remove nan vals and replace them with ''
@@ -31,7 +32,6 @@ reviews['reviewText'] = reviews['reviewText'].fillna('')
 reviews['reviewText'] = reviews['summary'] + ' ' + reviews['reviewText']
 sums = reviews['summary'].values
 isbns = reviews['asin'].values.tolist()
-np.array_split(isbns, threads)
 print(len(isbns))
 isbns = list(dict.fromkeys(isbns))#remove dups
 print(len(isbns))
@@ -42,31 +42,27 @@ reviews['review_length'] = reviews['reviewText'].apply(lambda x: len(x.split()))
 reviews.head()
 import threading
 print(isbnlib.is_isbn10(isbns),isbnlib.is_isbn13(isbns))
-#b= gc.search_books(['B00BN0T8ZO'])[0].title.tolist()
-
+b= gc.search_books(['B00BN0T8ZO'])[0].title
+isbntitle ={}
 try:
     isbntitle = pickle.load(open( "isbn_title.pkl", "rb" ) )
 except:
     print('does not exist')
 
-
-
 i = 0
 for isbn in isbns:
     if isbn not in isbntitle:
         try:
-            title = client.search_books(isbn)[0].title
-            l.acquire()
-            isbntitle[isbn] = title
-            l.release()
+            isbntitle[isbn] = gc.search_books([isbn])[0].title
         except:
             print('fail')
         #sleep(1)
-    if(i%10==0):
-        print('saving books')
-        f = open(f"isbn_title{num}.pkl","wb")
-        pickle.dump(isbntitle,f)
-        f.close()
+        if(i%10==0):
+            print('saving books')
+            f = open(f"isbn_title.pkl","wb")
+            pickle.dump(isbntitle,f)
+            f.close()
+        sleep(.5)
     i+=1
 
 
@@ -82,7 +78,7 @@ isbn13 = []
 # Load pre-trained model tokenizer (vocabulary)
 
 
-pre = 'my review of a Lamp.'
+pre = 'my review of .'
 # Encode a text inputs
 text = "Who was Jim Henson ? Jim Henson was a"
 indexed_tokens = tokenizer.encode(text)

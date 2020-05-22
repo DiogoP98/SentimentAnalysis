@@ -41,35 +41,40 @@ temp = df[['reviewText', 'overall']]
 
 maxlen = 40
 step = 3
-try:
-    ones = np.load(r'Datasets\ones.npy', allow_pickle=True)
-    twos = np.load(r'Datasets\twos.npy', allow_pickle=True)
-    threes = np.load(r'Datasets\threes.npy', allow_pickle=True)
-    fours = np.load(r'Datasets\fours.npy', allow_pickle=True)
-    fives = np.load(r'Datasets\fives.npy', allow_pickle=True)
-except:
-    ones = temp.loc[temp['overall'].isin([1])]
-    twos = temp.loc[temp['overall'].isin([2])]
-    threes = temp.loc[temp['overall'].isin([3])]
-    fours = temp.loc[temp['overall'].isin([4])]
-    fives = temp.loc[temp['overall'].isin([5])]
-    ones = ones['reviewText'].values
-    twos = twos['reviewText'].values
-    threes = threes['reviewText'].values
-    fours = fours['reviewText'].values
-    fives = fives['reviewText'].values
-    save(r'Datasets\ones.npy', ones)
-    save(r'Datasets\twos.npy', twos)
-    save(r'Datasets\threes.npy', threes)
-    save(r'Datasets\fours.npy', fours)
-    save(r'Datasets\fives.npy', fives)
+#try:
+#    ones = np.load(r'Datasets\ones.npy', allow_pickle=True)
+#    twos = np.load(r'Datasets\twos.npy', allow_pickle=True)
+#    threes = np.load(r'Datasets\threes.npy', allow_pickle=True)
+#    fours = np.load(r'Datasets\fours.npy', allow_pickle=True)
+#    fives = np.load(r'Datasets\fives.npy', allow_pickle=True)
+#except:
+#    ones = temp.loc[temp['overall'].isin([1])]
+#    twos = temp.loc[temp['overall'].isin([2])]
+#    threes = temp.loc[temp['overall'].isin([3])]
+#    fours = temp.loc[temp['overall'].isin([4])]
+#    fives = temp.loc[temp['overall'].isin([5])]
+#    ones = ones['reviewText'].values
+#    twos = twos['reviewText'].values
+#    threes = threes['reviewText'].values
+#    fours = fours['reviewText'].values
+#    fives = fives['reviewText'].values
+#    save(r'Datasets\ones.npy', ones)
+#    save(r'Datasets\twos.npy', twos)
+#    save(r'Datasets\threes.npy', threes)
+#    save(r'Datasets\fours.npy', fours)
+#    save(r'Datasets\fives.npy', fives)
 
 try:
     oneswords =  np.load(r'Datasets\oneswords.npy'   , allow_pickle=True)
     twoswords =  np.load(r'Datasets\twoswords.npy'   , allow_pickle=True)
     threeswords= np.load(r'Datasets\threeswords.npy' , allow_pickle=True)
     fourswords = np.load(r'Datasets\fourswords.npy'  , allow_pickle=True)
-    fiveswords = np.load(r'Datasets\fiveswords.npy'  , allow_pickle=True)
+    #fiveswords = np.load(r'Datasets\fiveswords.npy'  , allow_pickle=True)
+    #del ones
+    #del twos
+    #del threes
+    #del fours
+    #del fives
 except:
     oneswords = ''
     twoswords= ''
@@ -100,7 +105,11 @@ except:
     save(r'Datasets\fiveswords.npy' , fiveswords)
 
 text = oneswords
-
+#del oneswords
+del twoswords
+del threeswords
+del fourswords
+#del fiveswords
 
 oneswords = [s+' 'for s in oneswords]
 oneswords[-1] = ' '
@@ -263,7 +272,7 @@ class MyDataset(Dataset):
         inp = text[i*step: i*step + maxlen]
         out = text[i*step + maxlen]
 
-        x = encode(inp)
+        x = encode(' '.join(inp))
         y = char_indices[out]
 
         return x, y
@@ -316,8 +325,8 @@ def create_samples(state):
 
             generated = ''
             sentence = text[start_index:start_index+maxlen-1]
-
-            generated += sentence
+            sentence = ' '.join(sentence)
+            generated = sentence
             print('----- Generating with seed: "' + sentence + '"')
             print()
             sys.stdout.write(generated)
