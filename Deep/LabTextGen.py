@@ -12,7 +12,7 @@ import AML.Deep.utils as utils
 import io
 
 # text = io.open('Datasets\\new_clean_sm.csv', encoding='utf-8').read().lower()
-df = pd.read_csv("Datasets\\new_clean_sm.csv")
+df = pd.read_csv(r"Datasets\\new_clean_sm.csv")
 
 print(df.shape)
 temp = df[['reviewText', 'overall']]
