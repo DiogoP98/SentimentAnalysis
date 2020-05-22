@@ -1,4 +1,4 @@
-# AdvancedMachineLearningCW
+# Sentiment Analysis
 
 COMP208 Coursework
 
