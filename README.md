@@ -26,7 +26,6 @@ The implementation process consisted in four main steps:
 * Gensim
 * PyLDAvis
 * Logging
-* Json
 * Nltk
 * Wordcloud
 * Torchbearer
