@@ -31,6 +31,7 @@ The implementation process consisted in four main steps:
 * Wordcloud
 * Torchbearer
 * PyTorch
+* Transformers
 
 Install all python modules with
 
