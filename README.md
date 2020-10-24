@@ -1,6 +1,6 @@
 # Sentiment Analysis
 
-This project analyses the performance of different methods in the challenging task of sentiment analysis. In order to do so, Amazon Kindle data was obtained from Kaggle (https://nijianmo.github.io/amazon/index.html).
+This project analyses the performance of different methods in the challenging task of sentiment analysis. In order to do so, Amazon Kindle data was obtained from (https://nijianmo.github.io/amazon/index.html).
 
 
 ## Implementation
